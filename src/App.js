@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import Anthropic from '@anthropic-ai/sdk';
 import { getSystemPrompt } from './systemPrompt';
 
@@ -36,11 +36,163 @@ function ArrowLeftIcon({ className }) {
   );
 }
 
+// ── Demo Chat ──────────────────────────────────────────────────────────────
+
+const DEMO = [
+  {
+    role: 'user',
+    text: 'I want to fly business class from Chicago to Tokyo in May. I have 180,000 Chase Ultimate Rewards points and a Chase Sapphire Reserve.',
+  },
+  {
+    role: 'assistant',
+    text: "Great setup for this route. Here's exactly what I'd do:\n\nTransfer 80,000 Chase points to Air France Flying Blue and book ANA business class — best value on this corridor at roughly 1.8¢ per point. That's ~$1,440 in value vs. ~$4,200 cash price.\n\nUse your Chase Sapphire Reserve for the taxes (~$200) — you'll get primary rental car coverage in Tokyo and Priority Pass lounge access at ORD before departure.\n\nBooking order: Check Flying Blue availability first → transfer points immediately → book within 24hrs (transfers are instant but irreversible).\n\nYou'll have 100,000 Chase points left for the return or future trips.",
+  },
+  {
+    role: 'user',
+    text: 'What about the hotel in Tokyo?',
+  },
+  {
+    role: 'assistant',
+    text: "With your remaining 100,000 Chase points, transfer 60,000 to Hyatt for 3 nights at Park Hyatt Tokyo — that's the Lost in Translation hotel, and Hyatt points are worth ~1.8¢ each there. Cash rate would be $800+/night. You'd save ~$2,400.",
+  },
+];
+
+// Timing (ms from intersection):
+// 400  → user1 appears
+// 900  → typing indicator
+// 2800 → assistant1 appears
+// 3600 → user2 appears
+// 4100 → typing indicator
+// 5400 → assistant2 appears
+const SCHEDULE = [400, 900, 2800, 3600, 4100, 5400];
+
+function DemoChat({ onGetStarted }) {
+  const [visible, setVisible] = useState(false);
+  const [step, setStep] = useState(0); // 0=hidden, 1=u1, 2=typing, 3=a1, 4=u2, 5=typing, 6=a2
+  const sectionRef = useRef(null);
+  const firedRef = useRef(false);
+
+  const startSequence = useCallback(() => {
+    if (firedRef.current) return;
+    firedRef.current = true;
+    setVisible(true);
+    SCHEDULE.forEach((delay, i) => {
+      // Offset each message by the fade-in duration (600ms) so animation starts after section appears
+      setTimeout(() => setStep(i + 1), 600 + delay);
+    });
+  }, []);
+
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) startSequence(); },
+      { threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [startSequence]);
+
+  const showTyping = step === 2 || step === 5;
+  const visibleMessages = DEMO.slice(
+    0,
+    step === 0 ? 0
+    : step === 1 ? 1
+    : step === 2 ? 1
+    : step === 3 ? 2
+    : step === 4 ? 3
+    : step === 5 ? 3
+    : 4
+  );
+
+  return (
+    <section
+      ref={sectionRef}
+      className="px-6 pb-16 max-w-2xl mx-auto w-full"
+      style={{
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'translateY(0)' : 'translateY(24px)',
+        transition: 'opacity 0.7s ease, transform 0.7s ease',
+      }}
+    >
+      {/* Section title */}
+      <div className="text-center mb-8">
+        <h2 className="text-2xl font-light text-white">See Flio in action</h2>
+      </div>
+
+      {/* Chat window */}
+      <div className="rounded-2xl border border-white/10 bg-[#0a1328] overflow-hidden">
+        {/* Window chrome */}
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-white/5 bg-[#060d1f]">
+          <div className="w-7 h-7 rounded-full bg-[#c9a84c]/20 border border-[#c9a84c]/30 flex items-center justify-center">
+            <PlaneIcon className="w-3.5 h-3.5 text-[#c9a84c]" />
+          </div>
+          <div>
+            <p className="text-white text-xs font-medium">Flio</p>
+            <p className="text-[10px] text-white/30">AI Travel Concierge</p>
+          </div>
+        </div>
+
+        {/* Messages */}
+        <div className="px-4 py-5 space-y-3 min-h-[200px]">
+          {visibleMessages.map((msg, i) => {
+            const isUser = msg.role === 'user';
+            return (
+              <div key={i} className={`flex ${isUser ? 'justify-end' : 'justify-start'} animate-fade-in-up`}>
+                {!isUser && (
+                  <div className="w-6 h-6 rounded-full bg-[#c9a84c]/20 border border-[#c9a84c]/30 flex items-center justify-center mr-2 mt-0.5 flex-shrink-0">
+                    <PlaneIcon className="w-3 h-3 text-[#c9a84c]" />
+                  </div>
+                )}
+                <div className="max-w-[78%]">
+                  <div
+                    className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
+                      isUser
+                        ? 'bg-[#c9a84c] text-[#060d1f] font-medium rounded-br-sm'
+                        : 'bg-[#0f1e3d] text-white/90 rounded-bl-sm'
+                    }`}
+                  >
+                    {msg.text}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Typing indicator */}
+          {showTyping && (
+            <div className="flex justify-start animate-fade-in-up">
+              <div className="w-6 h-6 rounded-full bg-[#c9a84c]/20 border border-[#c9a84c]/30 flex items-center justify-center mr-2 mt-0.5 flex-shrink-0">
+                <PlaneIcon className="w-3 h-3 text-[#c9a84c]" />
+              </div>
+              <div className="bg-[#0f1e3d] rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* CTA */}
+      <div className="text-center mt-6">
+        <button
+          onClick={onGetStarted}
+          className="text-sm text-[#c9a84c] hover:text-white transition-colors"
+        >
+          Try it with your own profile →
+        </button>
+      </div>
+    </section>
+  );
+}
+
 // ── Landing Page ───────────────────────────────────────────────────────────
 
 function LandingPage({ onGetStarted, onOpenChat }) {
   return (
-    <div className="min-h-screen bg-[#060d1f] font-['Inter',sans-serif] flex flex-col">
+    <div className="bg-[#060d1f] font-['Inter',sans-serif] flex flex-col">
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 py-5">
         <div className="flex items-center gap-2">
@@ -56,7 +208,7 @@ function LandingPage({ onGetStarted, onOpenChat }) {
       </nav>
 
       {/* Hero */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
+      <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center">
         {/* Badge */}
         <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5">
           <span className="h-1.5 w-1.5 rounded-full bg-[#c9a84c]" />
@@ -74,7 +226,7 @@ function LandingPage({ onGetStarted, onOpenChat }) {
         </p>
 
         {/* CTAs */}
-        <div className="flex flex-col sm:flex-row items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-center gap-4 mb-10">
           <button
             onClick={onGetStarted}
             className="flex items-center gap-2 bg-[#c9a84c] hover:bg-[#b8973d] text-[#060d1f] font-semibold px-8 py-3.5 rounded-full transition-colors text-sm tracking-wide"
@@ -89,18 +241,23 @@ function LandingPage({ onGetStarted, onOpenChat }) {
             Try the chat →
           </button>
         </div>
+
+        {/* Feature pills */}
+        <div className="flex flex-wrap justify-center gap-3">
+          {['Points optimization', 'Flight alerts', 'Hotel upgrades', 'Itinerary planning'].map((f) => (
+            <span
+              key={f}
+              className="rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs text-white/40"
+            >
+              {f}
+            </span>
+          ))}
+        </div>
       </div>
 
-      {/* Feature pills */}
-      <div className="flex flex-wrap justify-center gap-3 px-6 pb-12">
-        {['Points optimization', 'Flight alerts', 'Hotel upgrades', 'Itinerary planning'].map((f) => (
-          <span
-            key={f}
-            className="rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs text-white/40"
-          >
-            {f}
-          </span>
-        ))}
+      {/* Demo chat */}
+      <div className="pt-20 pb-16">
+        <DemoChat onGetStarted={onGetStarted} />
       </div>
     </div>
   );
