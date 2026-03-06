@@ -368,10 +368,14 @@ async function getSummaryData(client, history, assistantText) {
         },
       ],
     });
-    const text = response.content[0].text.trim();
+    const raw = response.content[0].text.trim();
+    // Strip markdown code fences if model wraps response
+    const text = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+    console.log('[Flio summary raw]', text);
     if (text === 'null') return null;
     return JSON.parse(text);
-  } catch {
+  } catch (err) {
+    console.error('[Flio summary error]', err);
     return null;
   }
 }
