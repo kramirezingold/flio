@@ -44,6 +44,14 @@ function CheckIcon({ className }) {
   );
 }
 
+function UserIcon({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+    </svg>
+  );
+}
+
 // ── Onboarding Data ────────────────────────────────────────────────────────
 
 const AIRPORTS = [
@@ -147,6 +155,39 @@ const PREFERENCE_OPTIONS = {
   cabin: { label: 'Cabin preference',  choices: ['Economy', 'Premium Economy', 'Business', 'First'] },
   hotel: { label: 'Hotel preference',  choices: ['Points hotels only', 'Mix of both', 'Any accommodation'] },
   style: { label: 'Travel style',      choices: ['Maximize comfort', 'Maximize value', 'Balance both'] },
+};
+
+// Cents-per-point valuations (user-specified)
+const POINTS_CPP = {
+  united: 1.4, delta: 1.2, american: 1.5, alaska: 1.6,
+  southwest: 1.5, marriott: 0.7, hilton: 0.5, hyatt: 1.8, ihg: 0.5,
+};
+
+const CARDS_CPP = {
+  csr: 2.05, csp: 2.05, 'amex-plat': 2.0, 'amex-gold': 2.0,
+  'venture-x': 1.85, 'citi-premier': 1.8, 'boa-premium': 1.5,
+};
+
+const CARD_CREDITS_DATA = {
+  csr: [
+    { id: 'csr-travel',   label: 'Travel Credit',  value: 300, note: 'Any travel purchase' },
+    { id: 'csr-dining',   label: 'Dining Credit',  value: 300, note: 'Sapphire Exclusive Tables' },
+    { id: 'csr-stubhub',  label: 'StubHub Credit', value: 300, note: 'Events & concerts' },
+  ],
+  'amex-plat': [
+    { id: 'plat-hotel',   label: 'Hotel Credit',    value: 200, note: 'Fine Hotels + Resorts' },
+    { id: 'plat-airline', label: 'Airline Credit',  value: 200, note: 'Checked bags & seat upgrades' },
+    { id: 'plat-clear',   label: 'CLEAR Plus',      value: 189, note: 'Skip ID checks at 50+ airports' },
+    { id: 'plat-walmart', label: 'Walmart+',        value: 155, note: 'Includes Paramount+ streaming' },
+  ],
+  'amex-gold': [
+    { id: 'gold-dining',  label: 'Dining Credit',   value: 120, note: '$10/month at select restaurants' },
+    { id: 'gold-uber',    label: 'Uber Cash',       value: 120, note: '$10/month for rides or Eats' },
+  ],
+  'venture-x': [
+    { id: 'vx-travel',    label: 'Travel Credit',   value: 300, note: 'Capital One Travel bookings' },
+    { id: 'vx-ge',        label: 'Global Entry',    value: 100, note: 'Every 4 years' },
+  ],
 };
 
 // ── Onboarding Components ──────────────────────────────────────────────────
@@ -497,7 +538,7 @@ function DemoChat({ onGetStarted }) {
 
 // ── Landing Page ───────────────────────────────────────────────────────────
 
-function LandingPage({ onGetStarted, onOpenChat }) {
+function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard }) {
   return (
     <div className="bg-[#060d1f] font-['Inter',sans-serif] flex flex-col">
       {/* Nav */}
@@ -506,12 +547,14 @@ function LandingPage({ onGetStarted, onOpenChat }) {
           <PlaneIcon className="w-5 h-5 text-[#c9a84c]" />
           <span className="text-white font-semibold tracking-widest text-sm uppercase">Flio</span>
         </div>
-        <button
-          onClick={onOpenChat}
-          className="text-sm text-white/60 hover:text-white transition-colors"
-        >
-          Open Chat
-        </button>
+        <div className="flex items-center gap-5">
+          <button onClick={onOpenChat} className="text-sm text-white/60 hover:text-white transition-colors">
+            Open Chat
+          </button>
+          <button onClick={onOpenDashboard} className="text-white/40 hover:text-white transition-colors" aria-label="Profile">
+            <UserIcon className="w-5 h-5" />
+          </button>
+        </div>
       </nav>
 
       {/* Hero */}
@@ -865,7 +908,7 @@ function ChatBubble({ message }) {
   );
 }
 
-function ChatInterface({ onBack, profile }) {
+function ChatInterface({ onBack, onOpenDashboard, profile }) {
   const [messages, setMessages] = useState([
     { id: 1, role: 'assistant', text: GREETING, time: now() },
   ]);
@@ -972,6 +1015,9 @@ function ChatInterface({ onBack, profile }) {
           <h2 className="text-white text-sm font-medium">Flio</h2>
           <p className="text-[10px] text-white/30">AI Travel Concierge</p>
         </div>
+        <button onClick={onOpenDashboard} className="ml-auto text-white/40 hover:text-white transition-colors" aria-label="Profile">
+          <UserIcon className="w-5 h-5" />
+        </button>
       </div>
 
       {/* Messages */}
@@ -1079,6 +1125,356 @@ function ReadyScreen({ profile }) {
   );
 }
 
+// ── Profile Dashboard ──────────────────────────────────────────────────────
+
+function cppDollar(balance, cpp) {
+  return Math.round((balance * cpp) / 100);
+}
+
+function WalletTile({ name, balance, currency, cpp, icon }) {
+  const val = cppDollar(balance, cpp);
+  return (
+    <div className="bg-[#0a1328] border border-white/8 rounded-xl p-4">
+      <div className="flex items-center gap-2.5 mb-3">
+        {icon}
+        <span className="text-white/60 text-xs leading-tight">{name}</span>
+      </div>
+      <p className="text-white text-xl font-light leading-none mb-0.5">
+        {balance > 0 ? balance.toLocaleString() : '—'}
+      </p>
+      <p className="text-white/25 text-[10px] mb-1.5">{currency}</p>
+      {balance > 0 && (
+        <p className="text-[#c9a84c] text-xs font-medium">~${val.toLocaleString()}</p>
+      )}
+    </div>
+  );
+}
+
+function WalletSection({ profile }) {
+  const programs = profile.loyaltyPrograms ?? [];
+  const cards = profile.creditCards ?? [];
+
+  const total = [
+    ...programs.map((p) => cppDollar(p.balance, POINTS_CPP[p.id] ?? 1.0)),
+    ...cards.map((c) => cppDollar(c.balance, CARDS_CPP[c.id] ?? 1.5)),
+  ].reduce((a, b) => a + b, 0);
+
+  if (programs.length === 0 && cards.length === 0) {
+    return (
+      <section>
+        <h3 className="text-white font-medium mb-3">Travel Wallet</h3>
+        <p className="text-white/30 text-sm">No programs or cards added yet.</p>
+      </section>
+    );
+  }
+
+  return (
+    <section>
+      <div className="flex items-center justify-between mb-5">
+        <h3 className="text-white font-medium">Travel Wallet</h3>
+        <div className="text-right">
+          <p className="text-[10px] text-white/30 uppercase tracking-widest">Total Est. Value</p>
+          <p className="text-[#c9a84c] text-xl font-semibold">${total.toLocaleString()}</p>
+        </div>
+      </div>
+
+      {programs.length > 0 && (
+        <>
+          <p className="text-[10px] text-white/30 uppercase tracking-widest mb-3">Loyalty Programs</p>
+          <div className="grid grid-cols-2 gap-2.5 mb-6">
+            {programs.map((p) => (
+              <WalletTile
+                key={p.id}
+                name={p.shortName}
+                balance={p.balance}
+                currency={p.currency}
+                cpp={POINTS_CPP[p.id] ?? 1.0}
+                icon={
+                  <div style={{ backgroundColor: p.color }} className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-white text-[9px] font-bold">{p.initials}</span>
+                  </div>
+                }
+              />
+            ))}
+          </div>
+        </>
+      )}
+
+      {cards.length > 0 && (
+        <>
+          <p className="text-[10px] text-white/30 uppercase tracking-widest mb-3">Credit Cards</p>
+          <div className="grid grid-cols-2 gap-2.5">
+            {cards.map((c) => (
+              <WalletTile
+                key={c.id}
+                name={c.shortName}
+                balance={c.balance}
+                currency={c.currency}
+                cpp={CARDS_CPP[c.id] ?? 1.5}
+                icon={
+                  <div style={{ background: c.bg }} className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span style={{ color: c.accentColor }} className="text-[7px] font-bold leading-none">{c.issuer?.split(' ')[0]}</span>
+                  </div>
+                }
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
+function CreditsSection({ profile, usedCredits, onToggle }) {
+  const cards = profile.creditCards ?? [];
+  const eligible = cards.filter((c) => CARD_CREDITS_DATA[c.id]);
+
+  const totalAvailable = eligible
+    .flatMap((c) => CARD_CREDITS_DATA[c.id])
+    .filter((cr) => !usedCredits[cr.id])
+    .reduce((a, cr) => a + cr.value, 0);
+
+  if (eligible.length === 0) {
+    return (
+      <section>
+        <h3 className="text-white font-medium mb-3">Annual Credits</h3>
+        <p className="text-white/30 text-sm">Add eligible cards to see your credits here.</p>
+      </section>
+    );
+  }
+
+  return (
+    <section>
+      <div className="flex items-center justify-between mb-5">
+        <h3 className="text-white font-medium">Annual Credits</h3>
+        <div className="text-right">
+          <p className="text-[10px] text-white/30 uppercase tracking-widest">Available</p>
+          <p className="text-emerald-400 text-xl font-semibold">${totalAvailable.toLocaleString()}</p>
+        </div>
+      </div>
+
+      <div className="space-y-5">
+        {eligible.map((card) => (
+          <div key={card.id}>
+            <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">{card.shortName}</p>
+            <div className="space-y-2">
+              {CARD_CREDITS_DATA[card.id].map((credit) => {
+                const used = !!usedCredits[credit.id];
+                return (
+                  <div
+                    key={credit.id}
+                    className={`flex items-center justify-between bg-[#0a1328] border rounded-xl px-4 py-3 transition-all ${
+                      used ? 'border-white/5 opacity-40' : 'border-white/10'
+                    }`}
+                  >
+                    <div>
+                      <p className={`text-sm leading-snug ${used ? 'line-through text-white/30' : 'text-white/80'}`}>
+                        {credit.label}
+                      </p>
+                      <p className={`text-xs mt-0.5 ${used ? 'text-white/20' : 'text-[#c9a84c]'}`}>
+                        ${credit.value} · {credit.note}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => onToggle(credit.id)}
+                      className={`ml-4 flex-shrink-0 text-xs px-3 py-1.5 rounded-full border transition-all ${
+                        used
+                          ? 'border-white/10 text-white/25'
+                          : 'border-emerald-500/40 text-emerald-400 bg-emerald-500/10'
+                      }`}
+                    >
+                      {used ? 'Used' : 'Available'}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function SettingsSection({ profile, onSave }) {
+  const [editing, setEditing] = useState(null);
+  const [airportQuery, setAirportQuery] = useState('');
+  const [draftAirport, setDraftAirport] = useState(null);
+
+  const filteredAirports = useMemo(() => {
+    if (!airportQuery.trim() || draftAirport) return [];
+    const q = airportQuery.toLowerCase();
+    return AIRPORTS.filter(
+      (a) => a.code.toLowerCase().includes(q) || a.city.toLowerCase().includes(q) || a.name.toLowerCase().includes(q)
+    ).slice(0, 5);
+  }, [airportQuery, draftAirport]);
+
+  const prefs = profile.preferences ?? {};
+
+  const startEditAirport = () => {
+    const a = profile.homeAirport;
+    setAirportQuery(a ? `${a.city} (${a.code})` : '');
+    setDraftAirport(a ?? null);
+    setEditing('airport');
+  };
+
+  const saveAirport = () => {
+    if (draftAirport) onSave({ ...profile, homeAirport: draftAirport });
+    setEditing(null);
+  };
+
+  const savePref = (key, val) => {
+    onSave({ ...profile, preferences: { ...prefs, [key]: val } });
+  };
+
+  return (
+    <section>
+      <h3 className="text-white font-medium mb-4">Profile Settings</h3>
+      <div className="space-y-3">
+
+        {/* Home airport */}
+        <div className="bg-[#0a1328] border border-white/10 rounded-xl p-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[10px] text-white/30 uppercase tracking-widest">Home Airport</p>
+            {editing !== 'airport'
+              ? <button onClick={startEditAirport} className="text-xs text-[#c9a84c] hover:text-white transition-colors">Edit</button>
+              : <button onClick={() => setEditing(null)} className="text-xs text-white/30 hover:text-white transition-colors">Cancel</button>}
+          </div>
+          {editing === 'airport' ? (
+            <div>
+              <div className="relative">
+                <input
+                  autoFocus
+                  type="text"
+                  value={airportQuery}
+                  onChange={(e) => { setAirportQuery(e.target.value); setDraftAirport(null); }}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-white/20 focus:outline-none focus:border-[#c9a84c]/50 transition-all"
+                  placeholder="Search city or code…"
+                />
+                {filteredAirports.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-[#0f1e3d] border border-white/10 rounded-xl overflow-hidden z-10 shadow-2xl">
+                    {filteredAirports.map((a) => (
+                      <button key={a.code} onClick={() => { setDraftAirport(a); setAirportQuery(`${a.city} (${a.code})`); }}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-white/5 transition-colors text-left border-b border-white/5 last:border-0">
+                        <span className="text-[#c9a84c] text-xs font-mono font-bold w-8">{a.code}</span>
+                        <span className="text-white text-sm">{a.city}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button onClick={saveAirport} disabled={!draftAirport}
+                className="mt-2 w-full py-2 rounded-full bg-[#c9a84c] disabled:bg-white/10 text-[#060d1f] disabled:text-white/30 text-xs font-semibold transition-colors">
+                Save
+              </button>
+            </div>
+          ) : (
+            <p className="text-white text-sm">
+              {profile.homeAirport ? `${profile.homeAirport.city} (${profile.homeAirport.code})` : <span className="text-white/30">Not set</span>}
+            </p>
+          )}
+        </div>
+
+        {/* Cabin preference */}
+        <div className="bg-[#0a1328] border border-white/10 rounded-xl p-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[10px] text-white/30 uppercase tracking-widest">Cabin Preference</p>
+            {editing !== 'cabin'
+              ? <button onClick={() => setEditing('cabin')} className="text-xs text-[#c9a84c] hover:text-white transition-colors">Edit</button>
+              : <button onClick={() => setEditing(null)} className="text-xs text-white/30 hover:text-white transition-colors">Done</button>}
+          </div>
+          {editing === 'cabin' ? (
+            <div className="flex flex-wrap gap-2 mt-1">
+              {['Economy', 'Premium Economy', 'Business', 'First'].map((c) => (
+                <button key={c} onClick={() => { savePref('cabin', c); setEditing(null); }}
+                  className={`px-3 py-1.5 rounded-full text-xs transition-all ${prefs.cabin === c ? 'bg-[#c9a84c] text-[#060d1f] font-semibold' : 'border border-white/15 text-white/60 hover:text-white'}`}>
+                  {c}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="text-white text-sm">{prefs.cabin ?? <span className="text-white/30">Not set</span>}</p>
+          )}
+        </div>
+
+        {/* Travel style */}
+        <div className="bg-[#0a1328] border border-white/10 rounded-xl p-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[10px] text-white/30 uppercase tracking-widest">Travel Style</p>
+            {editing !== 'style'
+              ? <button onClick={() => setEditing('style')} className="text-xs text-[#c9a84c] hover:text-white transition-colors">Edit</button>
+              : <button onClick={() => setEditing(null)} className="text-xs text-white/30 hover:text-white transition-colors">Done</button>}
+          </div>
+          {editing === 'style' ? (
+            <div className="flex flex-wrap gap-2 mt-1">
+              {['Maximize comfort', 'Maximize value', 'Balance both'].map((s) => (
+                <button key={s} onClick={() => { savePref('style', s); setEditing(null); }}
+                  className={`px-3 py-1.5 rounded-full text-xs transition-all ${prefs.style === s ? 'bg-[#c9a84c] text-[#060d1f] font-semibold' : 'border border-white/15 text-white/60 hover:text-white'}`}>
+                  {s}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="text-white text-sm">{prefs.style ?? <span className="text-white/30">Not set</span>}</p>
+          )}
+        </div>
+
+      </div>
+    </section>
+  );
+}
+
+function ProfileDashboard({ profile, usedCredits, onToggleCredit, onSave, onBack }) {
+  const [tab, setTab] = useState('wallet'); // 'wallet' | 'credits' | 'settings'
+
+  const tabs = [
+    { id: 'wallet',   label: 'Wallet' },
+    { id: 'credits',  label: 'Credits' },
+    { id: 'settings', label: 'Settings' },
+  ];
+
+  return (
+    <div className="min-h-screen bg-[#060d1f] font-['Inter',sans-serif] flex flex-col">
+      {/* Header */}
+      <div className="flex items-center gap-4 px-6 py-5 border-b border-white/5">
+        <button onClick={onBack} className="text-white/40 hover:text-white transition-colors">
+          <ArrowLeftIcon className="w-5 h-5" />
+        </button>
+        <div className="w-8 h-8 rounded-full bg-[#c9a84c]/20 border border-[#c9a84c]/30 flex items-center justify-center">
+          <UserIcon className="w-4 h-4 text-[#c9a84c]" />
+        </div>
+        <h1 className="text-white font-medium text-sm">My Profile</h1>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex border-b border-white/5 px-6">
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className={`py-3 mr-6 text-sm border-b-2 transition-all ${
+              tab === t.id
+                ? 'border-[#c9a84c] text-white'
+                : 'border-transparent text-white/35 hover:text-white/60'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="px-5 py-7 max-w-2xl mx-auto w-full">
+          {tab === 'wallet'   && <WalletSection  profile={profile} />}
+          {tab === 'credits'  && <CreditsSection profile={profile} usedCredits={usedCredits} onToggle={onToggleCredit} />}
+          {tab === 'settings' && <SettingsSection profile={profile} onSave={onSave} />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function now() {
@@ -1089,10 +1485,35 @@ function now() {
 
 export default function App() {
   const [screen, setScreen] = useState('landing');
-  const [profile, setProfile] = useState({});
+  const prevScreenRef = useRef('landing');
+
+  const [profile, setProfile] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('flio-profile')) || {}; } catch { return {}; }
+  });
+  const [usedCredits, setUsedCredits] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('flio-credits')) || {}; } catch { return {}; }
+  });
+
+  const saveProfile = (p) => {
+    setProfile(p);
+    localStorage.setItem('flio-profile', JSON.stringify(p));
+  };
+
+  const toggleCredit = (id) => {
+    setUsedCredits((prev) => {
+      const next = { ...prev, [id]: !prev[id] };
+      localStorage.setItem('flio-credits', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const openDashboard = (from) => {
+    prevScreenRef.current = from;
+    setScreen('dashboard');
+  };
 
   const handleProfileComplete = (savedProfile) => {
-    setProfile(savedProfile);
+    saveProfile(savedProfile);
     setScreen('ready');
     setTimeout(() => setScreen('chat'), 2800);
   };
@@ -1103,6 +1524,7 @@ export default function App() {
         <LandingPage
           onGetStarted={() => setScreen('profile')}
           onOpenChat={() => setScreen('chat')}
+          onOpenDashboard={() => openDashboard('landing')}
         />
       )}
       {screen === 'profile' && (
@@ -1113,7 +1535,20 @@ export default function App() {
       )}
       {screen === 'ready' && <ReadyScreen profile={profile} />}
       {screen === 'chat' && (
-        <ChatInterface onBack={() => setScreen('landing')} profile={profile} />
+        <ChatInterface
+          onBack={() => setScreen('landing')}
+          onOpenDashboard={() => openDashboard('chat')}
+          profile={profile}
+        />
+      )}
+      {screen === 'dashboard' && (
+        <ProfileDashboard
+          profile={profile}
+          usedCredits={usedCredits}
+          onToggleCredit={toggleCredit}
+          onSave={saveProfile}
+          onBack={() => setScreen(prevScreenRef.current)}
+        />
       )}
     </>
   );
