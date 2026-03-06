@@ -52,6 +52,38 @@ function UserIcon({ className }) {
   );
 }
 
+function PlusIcon({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+
+function TrashIcon({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+    </svg>
+  );
+}
+
+function HistoryIcon({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+
+function XIcon({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  );
+}
+
 // ── Onboarding Data ────────────────────────────────────────────────────────
 
 const AIRPORTS = [
@@ -538,7 +570,7 @@ function DemoChat({ onGetStarted }) {
 
 // ── Landing Page ───────────────────────────────────────────────────────────
 
-function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard }) {
+function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, onEditProfile }) {
   return (
     <div className="bg-[#060d1f] font-['Inter',sans-serif] flex flex-col">
       {/* Nav */}
@@ -548,6 +580,11 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard }) {
           <span className="text-white font-semibold tracking-widest text-sm uppercase">Flio</span>
         </div>
         <div className="flex items-center gap-5">
+          {hasProfile && (
+            <button onClick={onEditProfile} className="text-sm text-white/60 hover:text-white transition-colors">
+              Edit profile
+            </button>
+          )}
           <button onClick={onOpenChat} className="text-sm text-white/60 hover:text-white transition-colors">
             Open Chat
           </button>
@@ -617,13 +654,15 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard }) {
 
 const STEP_LABELS = ['Home Airport', 'Loyalty Programs', 'Credit Cards', 'Preferences'];
 
-function ProfileSetup({ onBack, onComplete }) {
+function ProfileSetup({ onBack, onComplete, initialProfile }) {
   const [step, setStep] = useState(1);
-  const [airportQuery, setAirportQuery] = useState('');
-  const [selectedAirport, setSelectedAirport] = useState(null);
-  const [selectedPrograms, setSelectedPrograms] = useState([]);
-  const [selectedCards, setSelectedCards] = useState([]);
-  const [preferences, setPreferences] = useState({ seat: null, cabin: null, hotel: null, style: null });
+  const [airportQuery, setAirportQuery] = useState(
+    initialProfile?.homeAirport ? `${initialProfile.homeAirport.city} (${initialProfile.homeAirport.code})` : ''
+  );
+  const [selectedAirport, setSelectedAirport] = useState(initialProfile?.homeAirport ?? null);
+  const [selectedPrograms, setSelectedPrograms] = useState(initialProfile?.loyaltyPrograms ?? []);
+  const [selectedCards, setSelectedCards] = useState(initialProfile?.creditCards ?? []);
+  const [preferences, setPreferences] = useState(initialProfile?.preferences ?? { seat: null, cabin: null, hotel: null, style: null });
   const [balanceModal, setBalanceModal] = useState(null);
 
   const filteredAirports = useMemo(() => {
@@ -862,6 +901,45 @@ function TripSummaryCard({ summary }) {
   );
 }
 
+// ── Trip History ────────────────────────────────────────────────────────────
+
+const TRIPS_KEY = 'flio-trips';
+const MAX_TRIPS = 20;
+
+function formatTripDate(isoString) {
+  const d = new Date(isoString);
+  const diffDays = Math.floor((Date.now() - d) / 86400000);
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays} days ago`;
+  return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+}
+
+function TripHistoryItem({ trip, isActive, onLoad, onDelete }) {
+  return (
+    <div
+      className={`group flex items-center gap-2 px-3 py-2 mx-2 rounded-lg cursor-pointer transition-colors ${
+        isActive ? 'bg-[#c9a84c]/10' : 'hover:bg-white/5'
+      }`}
+      onClick={() => onLoad(trip)}
+    >
+      <div className="flex-1 min-w-0">
+        <p className={`text-sm truncate leading-snug ${isActive ? 'text-white' : 'text-white/65 group-hover:text-white/90'}`}>
+          {trip.title}
+        </p>
+        <p className="text-[10px] text-white/25 mt-0.5">{formatTripDate(trip.date)}</p>
+      </div>
+      <button
+        onClick={(e) => { e.stopPropagation(); onDelete(trip.id); }}
+        className="opacity-0 group-hover:opacity-100 text-white/25 hover:text-red-400 transition-all flex-shrink-0"
+        aria-label="Delete trip"
+      >
+        <TrashIcon className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  );
+}
+
 // ── Chat Interface ─────────────────────────────────────────────────────────
 
 const GREETING = "Hi! I'm Flio, your AI travel concierge. Where are you thinking of going next?";
@@ -908,7 +986,10 @@ function ChatBubble({ message }) {
   );
 }
 
-function ChatInterface({ onBack, onOpenDashboard, profile }) {
+function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips, onSaveTrip, onDeleteTrip }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [currentTripId, setCurrentTripId] = useState(null);
+  const currentTripIdRef = useRef(null);
   const [messages, setMessages] = useState([
     { id: 1, role: 'assistant', text: GREETING, time: now() },
   ]);
@@ -926,6 +1007,28 @@ function ChatInterface({ onBack, onOpenDashboard, profile }) {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isStreaming]);
 
+  const startNewTrip = () => {
+    setMessages([{ id: Date.now(), role: 'assistant', text: GREETING, time: now() }]);
+    currentTripIdRef.current = null;
+    setCurrentTripId(null);
+    setSidebarOpen(false);
+  };
+
+  const loadTrip = (trip) => {
+    setMessages(trip.messages);
+    currentTripIdRef.current = trip.id;
+    setCurrentTripId(trip.id);
+    setSidebarOpen(false);
+  };
+
+  const handleDeleteTrip = (id) => {
+    if (id === currentTripIdRef.current) {
+      currentTripIdRef.current = null;
+      setCurrentTripId(null);
+    }
+    onDeleteTrip(id);
+  };
+
   const send = async () => {
     if (!input.trim() || isStreaming) return;
 
@@ -933,18 +1036,16 @@ function ChatInterface({ onBack, onOpenDashboard, profile }) {
     const userTime = now();
     setInput('');
 
-    // Add user message
     const userMsg = { id: Date.now(), role: 'user', text: userText, time: userTime };
+    const prevMessages = messages; // capture before state update
     setMessages((prev) => [...prev, userMsg]);
     setIsStreaming(true);
 
-    // Build API history from all messages + new user message
     const history = [
-      ...messages.map((m) => ({ role: m.role, content: m.text })),
+      ...prevMessages.map((m) => ({ role: m.role, content: m.text })),
       { role: 'user', content: userText },
     ];
 
-    // Create placeholder for streaming response
     const assistantId = Date.now() + 1;
     setMessages((prev) => [
       ...prev,
@@ -961,26 +1062,39 @@ function ChatInterface({ onBack, onOpenDashboard, profile }) {
 
       let fullText = '';
       for await (const chunk of stream) {
-        if (
-          chunk.type === 'content_block_delta' &&
-          chunk.delta.type === 'text_delta'
-        ) {
+        if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
           fullText += chunk.delta.text;
           setMessages((prev) =>
-            prev.map((m) =>
-              m.id === assistantId ? { ...m, text: m.text + chunk.delta.text } : m
-            )
+            prev.map((m) => (m.id === assistantId ? { ...m, text: m.text + chunk.delta.text } : m))
           );
         }
       }
 
-      // Fire summary extraction after streaming completes
       setIsStreaming(false);
       const summary = await getSummaryData(clientRef.current, history, fullText);
       setMessages((prev) =>
         prev.map((m) => (m.id === assistantId ? { ...m, summary } : m))
       );
-      return; // skip finally setIsStreaming
+
+      // Auto-save trip
+      const finalMessages = [
+        ...prevMessages,
+        userMsg,
+        { id: assistantId, role: 'assistant', text: fullText, time: now(), summary },
+      ];
+      if (!currentTripIdRef.current) {
+        currentTripIdRef.current = String(Date.now());
+        setCurrentTripId(currentTripIdRef.current);
+      }
+      const firstUserText = prevMessages.find((m) => m.role === 'user')?.text ?? userText;
+      onSaveTrip({
+        id: currentTripIdRef.current,
+        title: firstUserText.slice(0, 60),
+        date: new Date().toISOString(),
+        messages: finalMessages,
+      });
+
+      return;
     } catch (err) {
       setMessages((prev) =>
         prev.map((m) =>
@@ -1002,9 +1116,63 @@ function ChatInterface({ onBack, onOpenDashboard, profile }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#060d1f] font-['Inter',sans-serif] flex flex-col">
+    <div className="min-h-screen bg-[#060d1f] font-['Inter',sans-serif] flex flex-col relative overflow-hidden">
+
+      {/* Sidebar backdrop */}
+      {sidebarOpen && (
+        <div
+          className="absolute inset-0 bg-black/60 z-20"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar panel */}
+      <div
+        className={`absolute left-0 top-0 bottom-0 w-72 bg-[#040b1a] border-r border-white/8 z-30 flex flex-col transition-transform duration-300 ease-in-out ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="flex items-center justify-between px-4 py-4 border-b border-white/5 flex-shrink-0">
+          <span className="text-white text-sm font-medium">Trip History</span>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="text-white/30 hover:text-white transition-colors"
+          >
+            <XIcon className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="px-3 py-3 border-b border-white/5 flex-shrink-0">
+          <button
+            onClick={startNewTrip}
+            className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl bg-[#c9a84c]/10 border border-[#c9a84c]/20 text-[#c9a84c] text-sm hover:bg-[#c9a84c]/20 transition-colors"
+          >
+            <PlusIcon className="w-4 h-4" />
+            New Trip
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto py-2">
+          {trips.length === 0 ? (
+            <p className="text-white/25 text-xs text-center mt-8 px-4 leading-relaxed">
+              No saved trips yet.<br />Start chatting to save your first trip.
+            </p>
+          ) : (
+            trips.map((trip) => (
+              <TripHistoryItem
+                key={trip.id}
+                trip={trip}
+                isActive={trip.id === currentTripId}
+                onLoad={loadTrip}
+                onDelete={handleDeleteTrip}
+              />
+            ))
+          )}
+        </div>
+      </div>
+
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-4 border-b border-white/5 bg-[#060d1f]">
+      <div className="flex items-center gap-3 px-4 py-4 border-b border-white/5 bg-[#060d1f] flex-shrink-0">
         <button onClick={onBack} className="text-white/40 hover:text-white transition-colors">
           <ArrowLeftIcon className="w-5 h-5" />
         </button>
@@ -1015,9 +1183,21 @@ function ChatInterface({ onBack, onOpenDashboard, profile }) {
           <h2 className="text-white text-sm font-medium">Flio</h2>
           <p className="text-[10px] text-white/30">AI Travel Concierge</p>
         </div>
-        <button onClick={onOpenDashboard} className="ml-auto text-white/40 hover:text-white transition-colors" aria-label="Profile">
-          <UserIcon className="w-5 h-5" />
-        </button>
+        <div className="ml-auto flex items-center gap-4">
+          <button onClick={onEditProfile} className="text-sm text-white/40 hover:text-white transition-colors">
+            Edit profile
+          </button>
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="text-white/40 hover:text-white transition-colors"
+            aria-label="Trip history"
+          >
+            <HistoryIcon className="w-5 h-5" />
+          </button>
+          <button onClick={onOpenDashboard} className="text-white/40 hover:text-white transition-colors" aria-label="Profile">
+            <UserIcon className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {/* Messages */}
@@ -1037,7 +1217,7 @@ function ChatInterface({ onBack, onOpenDashboard, profile }) {
       </div>
 
       {/* Input */}
-      <div className="px-4 py-4 border-t border-white/5 bg-[#060d1f]">
+      <div className="px-4 py-4 border-t border-white/5 bg-[#060d1f] flex-shrink-0">
         <div className="flex items-center gap-3 bg-[#0f1e3d] border border-white/10 rounded-full px-4 py-2.5">
           <input
             type="text"
@@ -1484,14 +1664,25 @@ function now() {
 // ── App Shell ──────────────────────────────────────────────────────────────
 
 export default function App() {
-  const [screen, setScreen] = useState('landing');
+  const [screen, setScreen] = useState(() => {
+    try {
+      const p = JSON.parse(localStorage.getItem('flio-profile'));
+      if (p && p.homeAirport) return 'chat';
+    } catch {}
+    return 'landing';
+  });
   const prevScreenRef = useRef('landing');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editReturnScreen, setEditReturnScreen] = useState('landing');
 
   const [profile, setProfile] = useState(() => {
     try { return JSON.parse(localStorage.getItem('flio-profile')) || {}; } catch { return {}; }
   });
   const [usedCredits, setUsedCredits] = useState(() => {
     try { return JSON.parse(localStorage.getItem('flio-credits')) || {}; } catch { return {}; }
+  });
+  const [trips, setTrips] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(TRIPS_KEY)) || []; } catch { return []; }
   });
 
   const saveProfile = (p) => {
@@ -1507,15 +1698,42 @@ export default function App() {
     });
   };
 
+  const saveTrip = (trip) => {
+    setTrips((prev) => {
+      const next = [trip, ...prev.filter((t) => t.id !== trip.id)].slice(0, MAX_TRIPS);
+      localStorage.setItem(TRIPS_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const deleteTrip = (id) => {
+    setTrips((prev) => {
+      const next = prev.filter((t) => t.id !== id);
+      localStorage.setItem(TRIPS_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
+
   const openDashboard = (from) => {
     prevScreenRef.current = from;
     setScreen('dashboard');
   };
 
+  const handleEditProfile = (from) => {
+    setIsEditing(true);
+    setEditReturnScreen(from);
+    setScreen('profile');
+  };
+
   const handleProfileComplete = (savedProfile) => {
     saveProfile(savedProfile);
-    setScreen('ready');
-    setTimeout(() => setScreen('chat'), 2800);
+    if (isEditing) {
+      setIsEditing(false);
+      setScreen(editReturnScreen);
+    } else {
+      setScreen('ready');
+      setTimeout(() => setScreen('chat'), 2800);
+    }
   };
 
   return (
@@ -1525,12 +1743,15 @@ export default function App() {
           onGetStarted={() => setScreen('profile')}
           onOpenChat={() => setScreen('chat')}
           onOpenDashboard={() => openDashboard('landing')}
+          hasProfile={!!profile.homeAirport}
+          onEditProfile={() => handleEditProfile('landing')}
         />
       )}
       {screen === 'profile' && (
         <ProfileSetup
-          onBack={() => setScreen('landing')}
+          onBack={() => setScreen(isEditing ? editReturnScreen : 'landing')}
           onComplete={handleProfileComplete}
+          initialProfile={profile}
         />
       )}
       {screen === 'ready' && <ReadyScreen profile={profile} />}
@@ -1538,7 +1759,11 @@ export default function App() {
         <ChatInterface
           onBack={() => setScreen('landing')}
           onOpenDashboard={() => openDashboard('chat')}
+          onEditProfile={() => handleEditProfile('chat')}
           profile={profile}
+          trips={trips}
+          onSaveTrip={saveTrip}
+          onDeleteTrip={deleteTrip}
         />
       )}
       {screen === 'dashboard' && (
