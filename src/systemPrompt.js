@@ -1,10 +1,27 @@
 export function getSystemPrompt(profile = {}) {
-  const { homeAirport, loyaltyPrograms, creditCards, travelPreferences } = profile;
+  const { homeAirport, loyaltyPrograms = [], creditCards = [], preferences = {} } = profile;
 
-  const profileBlock = `- Home airport: ${homeAirport || 'Not specified'}
-- Loyalty programs: ${loyaltyPrograms || 'Not specified'}
-- Credit cards: ${creditCards || 'Not specified'}
-- Travel preferences: ${travelPreferences || 'Not specified'}`;
+  const airportLine = homeAirport
+    ? `${homeAirport.city} — ${homeAirport.name} (${homeAirport.code})`
+    : 'Not specified';
+
+  const programLines = loyaltyPrograms.length
+    ? loyaltyPrograms.map((p) => `  - ${p.name}: ${p.balance > 0 ? p.balance.toLocaleString() + ' ' + p.currency : 'balance not specified'}`).join('\n')
+    : '  - None specified';
+
+  const cardLines = creditCards.length
+    ? creditCards.map((c) => `  - ${c.name}: ${c.balance > 0 ? c.balance.toLocaleString() + ' ' + c.currency : 'balance not specified'}`).join('\n')
+    : '  - None specified';
+
+  const prefLines = Object.entries(preferences)
+    .filter(([, v]) => v)
+    .map(([k, v]) => `  - ${k}: ${v}`)
+    .join('\n') || '  - No preferences set';
+
+  const profileBlock = `- Home airport: ${airportLine}
+- Loyalty programs:\n${programLines}
+- Credit cards:\n${cardLines}
+- Travel preferences:\n${prefLines}`;
 
   return `You are Flio, a world-class personal AI travel concierge. You are the equivalent of a seasoned travel advisor who has spent 15 years obsessively studying loyalty programs, credit card benefits, award redemptions, transfer partners, and travel optimization strategies. You think like the best contributors on r/churning, r/awardtravel, and The Points Guy — but you communicate like a brilliant, trusted friend who happens to know everything about travel rewards.
 

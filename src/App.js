@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import Anthropic from '@anthropic-ai/sdk';
 import { getSystemPrompt } from './systemPrompt';
 
@@ -33,6 +33,313 @@ function ArrowLeftIcon({ className }) {
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path strokeLinecap="round" strokeLinejoin="round" d="M19 12H5M12 5l-7 7 7 7" />
     </svg>
+  );
+}
+
+function CheckIcon({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+    </svg>
+  );
+}
+
+// ── Onboarding Data ────────────────────────────────────────────────────────
+
+const AIRPORTS = [
+  { code: 'ATL', name: 'Hartsfield-Jackson Atlanta International', city: 'Atlanta' },
+  { code: 'LAX', name: 'Los Angeles International', city: 'Los Angeles' },
+  { code: 'ORD', name: "Chicago O'Hare International", city: 'Chicago' },
+  { code: 'DFW', name: 'Dallas/Fort Worth International', city: 'Dallas' },
+  { code: 'DEN', name: 'Denver International', city: 'Denver' },
+  { code: 'JFK', name: 'John F. Kennedy International', city: 'New York' },
+  { code: 'SFO', name: 'San Francisco International', city: 'San Francisco' },
+  { code: 'SEA', name: 'Seattle-Tacoma International', city: 'Seattle' },
+  { code: 'LAS', name: 'Harry Reid International', city: 'Las Vegas' },
+  { code: 'MCO', name: 'Orlando International', city: 'Orlando' },
+  { code: 'EWR', name: 'Newark Liberty International', city: 'Newark' },
+  { code: 'CLT', name: 'Charlotte Douglas International', city: 'Charlotte' },
+  { code: 'PHX', name: 'Phoenix Sky Harbor International', city: 'Phoenix' },
+  { code: 'MIA', name: 'Miami International', city: 'Miami' },
+  { code: 'IAH', name: 'George Bush Intercontinental', city: 'Houston' },
+  { code: 'BOS', name: 'Logan International', city: 'Boston' },
+  { code: 'MSP', name: 'Minneapolis-Saint Paul International', city: 'Minneapolis' },
+  { code: 'DTW', name: 'Detroit Metropolitan Wayne County', city: 'Detroit' },
+  { code: 'FLL', name: 'Fort Lauderdale-Hollywood International', city: 'Fort Lauderdale' },
+  { code: 'PHL', name: 'Philadelphia International', city: 'Philadelphia' },
+  { code: 'LGA', name: 'LaGuardia Airport', city: 'New York' },
+  { code: 'BWI', name: 'Baltimore/Washington International', city: 'Baltimore' },
+  { code: 'DCA', name: 'Ronald Reagan Washington National', city: 'Washington DC' },
+  { code: 'SLC', name: 'Salt Lake City International', city: 'Salt Lake City' },
+  { code: 'SAN', name: 'San Diego International', city: 'San Diego' },
+  { code: 'IAD', name: 'Washington Dulles International', city: 'Washington DC' },
+  { code: 'TPA', name: 'Tampa International', city: 'Tampa' },
+  { code: 'MDW', name: 'Chicago Midway International', city: 'Chicago' },
+  { code: 'PDX', name: 'Portland International', city: 'Portland' },
+  { code: 'HNL', name: 'Daniel K. Inouye International', city: 'Honolulu' },
+  { code: 'BNA', name: 'Nashville International', city: 'Nashville' },
+  { code: 'AUS', name: 'Austin-Bergstrom International', city: 'Austin' },
+  { code: 'STL', name: 'St. Louis Lambert International', city: 'St. Louis' },
+  { code: 'MCI', name: 'Kansas City International', city: 'Kansas City' },
+  { code: 'RDU', name: 'Raleigh-Durham International', city: 'Raleigh' },
+  { code: 'SMF', name: 'Sacramento International', city: 'Sacramento' },
+  { code: 'SJC', name: 'San Jose International', city: 'San Jose' },
+  { code: 'OAK', name: 'Oakland International', city: 'Oakland' },
+  { code: 'CLE', name: 'Cleveland Hopkins International', city: 'Cleveland' },
+  { code: 'PIT', name: 'Pittsburgh International', city: 'Pittsburgh' },
+  { code: 'IND', name: 'Indianapolis International', city: 'Indianapolis' },
+  { code: 'CMH', name: 'John Glenn Columbus International', city: 'Columbus' },
+  { code: 'SAT', name: 'San Antonio International', city: 'San Antonio' },
+  { code: 'MSY', name: 'Louis Armstrong New Orleans International', city: 'New Orleans' },
+  { code: 'MKE', name: 'Milwaukee Mitchell International', city: 'Milwaukee' },
+  { code: 'OGG', name: 'Kahului Airport', city: 'Maui' },
+  { code: 'BDL', name: 'Bradley International', city: 'Hartford' },
+  { code: 'ABQ', name: 'Albuquerque International Sunport', city: 'Albuquerque' },
+  { code: 'OMA', name: 'Eppley Airfield', city: 'Omaha' },
+  { code: 'MEM', name: 'Memphis International', city: 'Memphis' },
+];
+
+const LOYALTY_PROGRAMS = [
+  { id: 'united', name: 'United MileagePlus', shortName: 'MileagePlus', color: '#1e3a8a', initials: 'UA', currency: 'miles' },
+  { id: 'delta', name: 'Delta SkyMiles', shortName: 'SkyMiles', color: '#c8102e', initials: 'DL', currency: 'miles' },
+  { id: 'american', name: 'American AAdvantage', shortName: 'AAdvantage', color: '#0d2340', initials: 'AA', currency: 'miles' },
+  { id: 'alaska', name: 'Alaska Mileage Plan', shortName: 'Mileage Plan', color: '#01426a', initials: 'AS', currency: 'miles' },
+  { id: 'southwest', name: 'Southwest Rapid Rewards', shortName: 'Rapid Rewards', color: '#304cb2', initials: 'WN', currency: 'points' },
+  { id: 'marriott', name: 'Marriott Bonvoy', shortName: 'Bonvoy', color: '#7a1220', initials: 'MB', currency: 'points' },
+  { id: 'hilton', name: 'Hilton Honors', shortName: 'Hilton Honors', color: '#153c6e', initials: 'HH', currency: 'points' },
+  { id: 'hyatt', name: 'World of Hyatt', shortName: 'World of Hyatt', color: '#1a1a1a', initials: 'WH', currency: 'points' },
+  { id: 'ihg', name: 'IHG One Rewards', shortName: 'IHG One', color: '#005f5f', initials: 'IHG', currency: 'points' },
+];
+
+const CREDIT_CARDS = [
+  {
+    id: 'csr', name: 'Chase Sapphire Reserve', shortName: 'Sapphire Reserve', issuer: 'CHASE',
+    bg: 'linear-gradient(135deg, #1c1c1e 0%, #2e2e30 100%)', accentColor: '#c9a84c', currency: 'points',
+  },
+  {
+    id: 'csp', name: 'Chase Sapphire Preferred', shortName: 'Sapphire Preferred', issuer: 'CHASE',
+    bg: 'linear-gradient(135deg, #0d2340 0%, #1a3a6e 100%)', accentColor: '#7eb3e8', currency: 'points',
+  },
+  {
+    id: 'amex-plat', name: 'Amex Platinum', shortName: 'Platinum Card', issuer: 'AMEX',
+    bg: 'linear-gradient(135deg, #a0a8b8 0%, #c8ceda 50%, #8a9099 100%)', accentColor: '#3a3a3a', currency: 'points',
+  },
+  {
+    id: 'amex-gold', name: 'Amex Gold', shortName: 'Gold Card', issuer: 'AMEX',
+    bg: 'linear-gradient(135deg, #c9a84c 0%, #e8c96a 50%, #a07d30 100%)', accentColor: '#3a2800', currency: 'points',
+  },
+  {
+    id: 'venture-x', name: 'Capital One Venture X', shortName: 'Venture X', issuer: 'CAPITAL ONE',
+    bg: 'linear-gradient(135deg, #080820 0%, #141440 100%)', accentColor: '#6c9ed4', currency: 'miles',
+  },
+  {
+    id: 'citi-premier', name: 'Citi Premier', shortName: 'Citi Premier', issuer: 'CITI',
+    bg: 'linear-gradient(135deg, #001a6e 0%, #0033aa 100%)', accentColor: '#7eb3e8', currency: 'points',
+  },
+  {
+    id: 'boa-premium', name: 'BofA Premium Rewards', shortName: 'Premium Rewards', issuer: 'BANK OF AMERICA',
+    bg: 'linear-gradient(135deg, #6b0000 0%, #a00000 100%)', accentColor: '#ffaa88', currency: 'points',
+  },
+];
+
+const PREFERENCE_OPTIONS = {
+  seat:  { label: 'Seat preference',   choices: ['Window', 'Aisle', 'No preference'] },
+  cabin: { label: 'Cabin preference',  choices: ['Economy', 'Premium Economy', 'Business', 'First'] },
+  hotel: { label: 'Hotel preference',  choices: ['Points hotels only', 'Mix of both', 'Any accommodation'] },
+  style: { label: 'Travel style',      choices: ['Maximize comfort', 'Maximize value', 'Balance both'] },
+};
+
+// ── Onboarding Components ──────────────────────────────────────────────────
+
+function BalanceModal({ item, type, onConfirm, onClose }) {
+  const [value, setValue] = useState('');
+  const label = type === 'loyalty' ? `How many ${item.currency} do you have?` : "What's your points balance?";
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center z-50 px-4 pb-4 sm:pb-0">
+      <div className="bg-[#0f1e3d] border border-white/10 rounded-2xl p-6 w-full max-w-sm">
+        <p className="text-xs text-white/40 uppercase tracking-widest mb-1">{item.name}</p>
+        <h3 className="text-white font-medium mb-5">{label}</h3>
+        <input
+          type="number"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder="e.g. 50000"
+          autoFocus
+          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-white/20 focus:outline-none focus:border-[#c9a84c]/50 transition-all mb-4"
+        />
+        <div className="flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 py-3 rounded-full border border-white/10 text-white/50 text-sm hover:text-white transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => onConfirm(parseInt(value.replace(/,/g, '')) || 0)}
+            className="flex-1 py-3 rounded-full bg-[#c9a84c] text-[#060d1f] font-semibold text-sm hover:bg-[#b8973d] transition-colors"
+          >
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AirportStep({ query, onChange, filtered, selected, onSelect }) {
+  return (
+    <div>
+      <h2 className="text-white text-2xl font-light mb-1">Where do you fly from?</h2>
+      <p className="text-white/40 text-sm mb-8">Your primary home airport</p>
+      <div className="relative">
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Search by city or airport code…"
+          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-white/20 focus:outline-none focus:border-[#c9a84c]/50 transition-all"
+        />
+        {filtered.length > 0 && (
+          <div className="absolute top-full left-0 right-0 mt-1 bg-[#0f1e3d] border border-white/10 rounded-xl overflow-hidden z-10 shadow-2xl">
+            {filtered.map((a) => (
+              <button
+                key={a.code}
+                onClick={() => onSelect(a)}
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-left border-b border-white/5 last:border-0"
+              >
+                <span className="text-[#c9a84c] text-xs font-mono font-bold w-8 flex-shrink-0">{a.code}</span>
+                <div>
+                  <p className="text-white text-sm">{a.city}</p>
+                  <p className="text-white/40 text-xs">{a.name}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      {selected && (
+        <div className="mt-4 flex items-center gap-2.5 bg-[#c9a84c]/10 border border-[#c9a84c]/30 rounded-xl px-4 py-3">
+          <CheckIcon className="w-4 h-4 text-[#c9a84c] flex-shrink-0" />
+          <div>
+            <p className="text-white text-sm font-medium">{selected.city} ({selected.code})</p>
+            <p className="text-white/40 text-xs">{selected.name}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SelectionGrid({ items, selected, onToggle, renderCard }) {
+  return (
+    <div className="grid grid-cols-3 gap-2.5">
+      {items.map((item) => {
+        const sel = selected.find((s) => s.id === item.id);
+        return (
+          <button
+            key={item.id}
+            onClick={() => onToggle(item)}
+            className={`relative p-3 rounded-xl border text-left transition-all ${
+              sel
+                ? 'border-[#c9a84c]/50 bg-[#c9a84c]/10'
+                : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/[0.08]'
+            }`}
+          >
+            {sel && (
+              <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[#c9a84c] flex items-center justify-center">
+                <CheckIcon className="w-2.5 h-2.5 text-[#060d1f]" />
+              </div>
+            )}
+            {renderCard(item, sel)}
+            <p className={`text-xs font-medium mt-2 leading-tight pr-4 ${sel ? 'text-white' : 'text-white/60'}`}>
+              {item.shortName}
+            </p>
+            {sel && (
+              <p className="text-[10px] text-[#c9a84c] mt-0.5">
+                {sel.balance > 0 ? sel.balance.toLocaleString() + ' ' + item.currency : 'Added'}
+              </p>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function LoyaltyStep({ selected, onToggle }) {
+  return (
+    <div>
+      <h2 className="text-white text-2xl font-light mb-1">Loyalty programs</h2>
+      <p className="text-white/40 text-sm mb-8">Select your frequent flyer and hotel programs</p>
+      <SelectionGrid
+        items={LOYALTY_PROGRAMS}
+        selected={selected}
+        onToggle={onToggle}
+        renderCard={(item) => (
+          <div
+            style={{ backgroundColor: item.color }}
+            className="w-10 h-10 rounded-full flex items-center justify-center"
+          >
+            <span className="text-white text-[10px] font-bold">{item.initials}</span>
+          </div>
+        )}
+      />
+    </div>
+  );
+}
+
+function CardsStep({ selected, onToggle }) {
+  return (
+    <div>
+      <h2 className="text-white text-2xl font-light mb-1">Credit cards</h2>
+      <p className="text-white/40 text-sm mb-8">Select your travel credit cards</p>
+      <SelectionGrid
+        items={CREDIT_CARDS}
+        selected={selected}
+        onToggle={onToggle}
+        renderCard={(item) => (
+          <div
+            style={{ background: item.bg }}
+            className="w-full h-10 rounded-lg flex items-center px-2.5"
+          >
+            <span style={{ color: item.accentColor }} className="text-[9px] font-bold tracking-wider opacity-80">
+              {item.issuer}
+            </span>
+          </div>
+        )}
+      />
+    </div>
+  );
+}
+
+function PreferencesStep({ preferences, onSet }) {
+  return (
+    <div>
+      <h2 className="text-white text-2xl font-light mb-1">Travel preferences</h2>
+      <p className="text-white/40 text-sm mb-8">How do you like to travel?</p>
+      <div className="space-y-7">
+        {Object.entries(PREFERENCE_OPTIONS).map(([key, { label, choices }]) => (
+          <div key={key}>
+            <p className="text-[10px] text-white/40 uppercase tracking-widest mb-3">{label}</p>
+            <div className="flex flex-wrap gap-2">
+              {choices.map((choice) => (
+                <button
+                  key={choice}
+                  onClick={() => onSet(key, choice)}
+                  className={`px-4 py-2 rounded-full text-sm transition-all ${
+                    preferences[key] === choice
+                      ? 'bg-[#c9a84c] text-[#060d1f] font-semibold'
+                      : 'border border-white/15 text-white/60 hover:border-white/30 hover:text-white'
+                  }`}
+                >
+                  {choice}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -265,88 +572,157 @@ function LandingPage({ onGetStarted, onOpenChat }) {
 
 // ── Profile Setup ──────────────────────────────────────────────────────────
 
+const STEP_LABELS = ['Home Airport', 'Loyalty Programs', 'Credit Cards', 'Preferences'];
+
 function ProfileSetup({ onBack, onComplete }) {
-  const [form, setForm] = useState({
-    homeAirport: '',
-    loyaltyPrograms: '',
-    creditCards: '',
-    travelPreferences: '',
-  });
+  const [step, setStep] = useState(1);
+  const [airportQuery, setAirportQuery] = useState('');
+  const [selectedAirport, setSelectedAirport] = useState(null);
+  const [selectedPrograms, setSelectedPrograms] = useState([]);
+  const [selectedCards, setSelectedCards] = useState([]);
+  const [preferences, setPreferences] = useState({ seat: null, cabin: null, hotel: null, style: null });
+  const [balanceModal, setBalanceModal] = useState(null);
 
-  const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
+  const filteredAirports = useMemo(() => {
+    if (!airportQuery.trim() || selectedAirport) return [];
+    const q = airportQuery.toLowerCase();
+    return AIRPORTS.filter(
+      (a) =>
+        a.code.toLowerCase().includes(q) ||
+        a.city.toLowerCase().includes(q) ||
+        a.name.toLowerCase().includes(q)
+    ).slice(0, 6);
+  }, [airportQuery, selectedAirport]);
 
-  const fields = [
-    {
-      key: 'homeAirport',
-      label: 'Home airport',
-      placeholder: 'e.g. JFK, LAX, ORD',
-      hint: 'Your primary departure airport',
-    },
-    {
-      key: 'loyaltyPrograms',
-      label: 'Loyalty programs',
-      placeholder: 'e.g. United MileagePlus, Marriott Bonvoy',
-      hint: 'Airlines, hotels, and other programs',
-    },
-    {
-      key: 'creditCards',
-      label: 'Travel credit cards',
-      placeholder: 'e.g. Chase Sapphire, Amex Platinum',
-      hint: 'Cards you use for travel rewards',
-    },
-    {
-      key: 'travelPreferences',
-      label: 'Travel preferences',
-      placeholder: 'e.g. window seat, business class, boutique hotels',
-      hint: 'How you like to travel',
-    },
-  ];
+  const handleAirportChange = (q) => {
+    setAirportQuery(q);
+    setSelectedAirport(null);
+  };
+
+  const handleAirportSelect = (airport) => {
+    setSelectedAirport(airport);
+    setAirportQuery(`${airport.city} (${airport.code})`);
+  };
+
+  const handleProgramToggle = (program) => {
+    if (selectedPrograms.find((s) => s.id === program.id)) {
+      setSelectedPrograms((prev) => prev.filter((s) => s.id !== program.id));
+    } else {
+      setBalanceModal({ item: program, type: 'loyalty' });
+    }
+  };
+
+  const handleCardToggle = (card) => {
+    if (selectedCards.find((s) => s.id === card.id)) {
+      setSelectedCards((prev) => prev.filter((s) => s.id !== card.id));
+    } else {
+      setBalanceModal({ item: card, type: 'card' });
+    }
+  };
+
+  const handleBalanceConfirm = (balance) => {
+    const { item, type } = balanceModal;
+    if (type === 'loyalty') {
+      setSelectedPrograms((prev) => [...prev, { ...item, balance }]);
+    } else {
+      setSelectedCards((prev) => [...prev, { ...item, balance }]);
+    }
+    setBalanceModal(null);
+  };
+
+  const handleNext = () => {
+    if (step < 4) {
+      setStep((s) => s + 1);
+    } else {
+      onComplete({ homeAirport: selectedAirport, loyaltyPrograms: selectedPrograms, creditCards: selectedCards, preferences });
+    }
+  };
+
+  const canProceed = step === 1 ? !!selectedAirport : true;
 
   return (
     <div className="min-h-screen bg-[#060d1f] font-['Inter',sans-serif] flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-4 px-6 py-5 border-b border-white/5">
-        <button onClick={onBack} className="text-white/40 hover:text-white transition-colors">
+        <button
+          onClick={step === 1 ? onBack : () => setStep((s) => s - 1)}
+          className="text-white/40 hover:text-white transition-colors"
+        >
           <ArrowLeftIcon className="w-5 h-5" />
         </button>
-        <div>
-          <p className="text-xs text-white/40 uppercase tracking-widest mb-0.5">Setup</p>
-          <h2 className="text-white font-medium">Your travel profile</h2>
+        <div className="flex-1">
+          <p className="text-[10px] text-white/30 uppercase tracking-widest mb-0.5">Step {step} of 4</p>
+          <h2 className="text-white text-sm font-medium">{STEP_LABELS[step - 1]}</h2>
         </div>
       </div>
 
-      {/* Form */}
-      <div className="flex-1 overflow-y-auto px-6 py-8 max-w-lg mx-auto w-full">
-        <p className="text-white/40 text-sm mb-8 leading-relaxed">
-          Tell Flio about your preferences so it can personalize every recommendation.
-        </p>
+      {/* Progress bar */}
+      <div className="flex gap-1 px-6 pt-3 pb-1">
+        {[1, 2, 3, 4].map((n) => (
+          <div
+            key={n}
+            className="h-0.5 flex-1 rounded-full transition-all duration-500"
+            style={{ backgroundColor: n <= step ? '#c9a84c' : 'rgba(255,255,255,0.1)' }}
+          />
+        ))}
+      </div>
 
-        <div className="space-y-6">
-          {fields.map(({ key, label, placeholder, hint }) => (
-            <div key={key}>
-              <label className="block text-xs font-medium text-white/60 uppercase tracking-widest mb-2">
-                {label}
-              </label>
-              <input
-                type="text"
-                value={form[key]}
-                onChange={set(key)}
-                placeholder={placeholder}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-white/20 focus:outline-none focus:border-[#c9a84c]/50 focus:bg-white/[0.07] transition-all"
-              />
-              <p className="text-xs text-white/25 mt-1.5 pl-1">{hint}</p>
-            </div>
-          ))}
-        </div>
+      {/* Step content */}
+      <div className="flex-1 flex flex-col overflow-y-auto px-6">
+      <div className="my-auto py-10 max-w-lg mx-auto w-full">
+        {step === 1 && (
+          <AirportStep
+            query={airportQuery}
+            onChange={handleAirportChange}
+            filtered={filteredAirports}
+            selected={selectedAirport}
+            onSelect={handleAirportSelect}
+          />
+        )}
+        {step === 2 && (
+          <LoyaltyStep selected={selectedPrograms} onToggle={handleProgramToggle} />
+        )}
+        {step === 3 && (
+          <CardsStep selected={selectedCards} onToggle={handleCardToggle} />
+        )}
+        {step === 4 && (
+          <PreferencesStep
+            preferences={preferences}
+            onSet={(key, val) => setPreferences((p) => ({ ...p, [key]: val }))}
+          />
+        )}
+      </div>
+      </div>
 
+      {/* Footer nav */}
+      <div className="px-6 pb-8 pt-4 border-t border-white/5">
         <button
-          onClick={() => onComplete(form)}
-          className="mt-10 w-full flex items-center justify-center gap-2 bg-[#c9a84c] hover:bg-[#b8973d] text-[#060d1f] font-semibold py-3.5 rounded-full transition-colors text-sm tracking-wide"
+          onClick={handleNext}
+          disabled={!canProceed}
+          className="w-full flex items-center justify-center gap-2 bg-[#c9a84c] disabled:bg-white/10 disabled:text-white/30 text-[#060d1f] font-semibold py-3.5 rounded-full transition-colors text-sm"
         >
-          Save profile & continue
+          {step === 4 ? 'Finish & Start chatting' : 'Continue'}
           <ChevronRightIcon className="w-4 h-4" />
         </button>
+        {step > 1 && (
+          <button
+            onClick={handleNext}
+            className="w-full text-center text-white/25 text-xs mt-4 hover:text-white/50 transition-colors"
+          >
+            Skip this step
+          </button>
+        )}
       </div>
+
+      {/* Balance modal */}
+      {balanceModal && (
+        <BalanceModal
+          item={balanceModal.item}
+          type={balanceModal.type}
+          onConfirm={handleBalanceConfirm}
+          onClose={() => setBalanceModal(null)}
+        />
+      )}
     </div>
   );
 }
@@ -639,6 +1015,70 @@ function ChatInterface({ onBack, profile }) {
   );
 }
 
+// ── Ready Screen ───────────────────────────────────────────────────────────
+
+function ReadyScreen({ profile }) {
+  const programs = profile.loyaltyPrograms ?? [];
+  const cards = profile.creditCards ?? [];
+  const prefs = profile.preferences ?? {};
+  const activePrefs = Object.values(prefs).filter(Boolean);
+
+  return (
+    <div className="min-h-screen bg-[#060d1f] font-['Inter',sans-serif] flex flex-col items-center justify-center px-6 text-center animate-fade-in-up">
+      {/* Icon */}
+      <div className="w-16 h-16 rounded-full bg-[#c9a84c]/15 border border-[#c9a84c]/30 flex items-center justify-center mb-8">
+        <PlaneIcon className="w-7 h-7 text-[#c9a84c]" />
+      </div>
+
+      <h2 className="text-3xl font-light text-white mb-2">You're all set.</h2>
+      <p className="text-white/40 text-sm mb-10 max-w-xs leading-relaxed">
+        Flio is ready with your profile. Ask anything about flights, hotels, or points.
+      </p>
+
+      {/* Profile summary card */}
+      <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-5 w-full max-w-sm text-left space-y-3 mb-10">
+        {profile.homeAirport && (
+          <div className="flex items-center gap-3">
+            <span className="text-[#c9a84c] text-xs font-mono font-bold w-10 flex-shrink-0">{profile.homeAirport.code}</span>
+            <span className="text-white/70 text-sm">{profile.homeAirport.city}</span>
+          </div>
+        )}
+        {programs.length > 0 && (
+          <div className="flex items-center gap-3">
+            <span className="text-white/25 text-xs w-10 flex-shrink-0">✈</span>
+            <span className="text-white/60 text-sm">
+              {programs.map((p) => p.shortName).join(', ')}
+            </span>
+          </div>
+        )}
+        {cards.length > 0 && (
+          <div className="flex items-center gap-3">
+            <span className="text-white/25 text-xs w-10 flex-shrink-0">◈</span>
+            <span className="text-white/60 text-sm">
+              {cards.map((c) => c.shortName).join(', ')}
+            </span>
+          </div>
+        )}
+        {activePrefs.length > 0 && (
+          <div className="flex items-start gap-3">
+            <span className="text-white/25 text-xs w-10 flex-shrink-0 mt-0.5">◎</span>
+            <span className="text-white/60 text-sm leading-relaxed">
+              {activePrefs.join(' · ')}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Loading dots */}
+      <div className="flex items-center gap-2">
+        <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c]/60 animate-bounce" style={{ animationDelay: '0ms' }} />
+        <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c]/60 animate-bounce" style={{ animationDelay: '150ms' }} />
+        <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c]/60 animate-bounce" style={{ animationDelay: '300ms' }} />
+      </div>
+    </div>
+  );
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function now() {
@@ -651,6 +1091,12 @@ export default function App() {
   const [screen, setScreen] = useState('landing');
   const [profile, setProfile] = useState({});
 
+  const handleProfileComplete = (savedProfile) => {
+    setProfile(savedProfile);
+    setScreen('ready');
+    setTimeout(() => setScreen('chat'), 2800);
+  };
+
   return (
     <>
       {screen === 'landing' && (
@@ -662,12 +1108,10 @@ export default function App() {
       {screen === 'profile' && (
         <ProfileSetup
           onBack={() => setScreen('landing')}
-          onComplete={(savedProfile) => {
-            setProfile(savedProfile);
-            setScreen('chat');
-          }}
+          onComplete={handleProfileComplete}
         />
       )}
+      {screen === 'ready' && <ReadyScreen profile={profile} />}
       {screen === 'chat' && (
         <ChatInterface onBack={() => setScreen('landing')} profile={profile} />
       )}
