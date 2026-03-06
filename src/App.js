@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import Anthropic from '@anthropic-ai/sdk';
+import { getSystemPrompt } from './systemPrompt';
 
 // ── Icons ──────────────────────────────────────────────────────────────────
 
@@ -63,12 +65,12 @@ function LandingPage({ onGetStarted, onOpenChat }) {
 
         {/* Headline */}
         <h1 className="text-5xl md:text-7xl font-light text-white leading-tight tracking-tight mb-4">
-          Travel smarter.<br />
-          <span className="text-[#c9a84c]">Fly better.</span>
+          Your points. Your perks.<br />
+          <span className="text-[#c9a84c]">Finally working for you.</span>
         </h1>
 
         <p className="text-white/50 text-lg md:text-xl max-w-md leading-relaxed mb-12">
-          Your personal AI concierge that knows your preferences, maximizes your points, and books the perfect trip.
+          Your personal AI concierge that knows your preferences, maximizes your points, and gets more out of every trip.
         </p>
 
         {/* CTAs */}
@@ -181,7 +183,7 @@ function ProfileSetup({ onBack, onComplete }) {
         </div>
 
         <button
-          onClick={onComplete}
+          onClick={() => onComplete(form)}
           className="mt-10 w-full flex items-center justify-center gap-2 bg-[#c9a84c] hover:bg-[#b8973d] text-[#060d1f] font-semibold py-3.5 rounded-full transition-colors text-sm tracking-wide"
         >
           Save profile & continue
@@ -194,14 +196,22 @@ function ProfileSetup({ onBack, onComplete }) {
 
 // ── Chat Interface ─────────────────────────────────────────────────────────
 
-const INITIAL_MESSAGES = [
-  {
-    id: 1,
-    role: 'assistant',
-    text: "Hi! I'm Flio, your AI travel concierge. Where are you thinking of going next?",
-    time: '9:41 AM',
-  },
-];
+const GREETING = "Hi! I'm Flio, your AI travel concierge. Where are you thinking of going next?";
+
+function TypingIndicator() {
+  return (
+    <div className="flex justify-start mb-3">
+      <div className="w-7 h-7 rounded-full bg-[#c9a84c]/20 border border-[#c9a84c]/30 flex items-center justify-center mr-2 mt-0.5 flex-shrink-0">
+        <PlaneIcon className="w-3.5 h-3.5 text-[#c9a84c]" />
+      </div>
+      <div className="bg-[#0f1e3d] rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1">
+        <span className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style={{ animationDelay: '0ms' }} />
+        <span className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style={{ animationDelay: '150ms' }} />
+        <span className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style={{ animationDelay: '300ms' }} />
+      </div>
+    </div>
+  );
+}
 
 function ChatBubble({ message }) {
   const isUser = message.role === 'user';
@@ -212,9 +222,9 @@ function ChatBubble({ message }) {
           <PlaneIcon className="w-3.5 h-3.5 text-[#c9a84c]" />
         </div>
       )}
-      <div className={`max-w-[72%] ${isUser ? '' : ''}`}>
+      <div className="max-w-[72%]">
         <div
-          className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+          className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
             isUser
               ? 'bg-[#c9a84c] text-[#060d1f] font-medium rounded-br-sm'
               : 'bg-[#0f1e3d] text-white/90 rounded-bl-sm'
@@ -230,18 +240,80 @@ function ChatBubble({ message }) {
   );
 }
 
-function ChatInterface({ onBack }) {
-  const [messages, setMessages] = useState(INITIAL_MESSAGES);
+function ChatInterface({ onBack, profile }) {
+  const [messages, setMessages] = useState([
+    { id: 1, role: 'assistant', text: GREETING, time: now() },
+  ]);
   const [input, setInput] = useState('');
+  const [isStreaming, setIsStreaming] = useState(false);
+  const bottomRef = useRef(null);
+  const clientRef = useRef(
+    new Anthropic({
+      apiKey: process.env.REACT_APP_ANTHROPIC_API_KEY,
+      dangerouslyAllowBrowser: true,
+    })
+  );
 
-  const send = () => {
-    if (!input.trim()) return;
-    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    setMessages((m) => [
-      ...m,
-      { id: Date.now(), role: 'user', text: input.trim(), time: now },
-    ]);
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isStreaming]);
+
+  const send = async () => {
+    if (!input.trim() || isStreaming) return;
+
+    const userText = input.trim();
+    const userTime = now();
     setInput('');
+
+    // Add user message
+    const userMsg = { id: Date.now(), role: 'user', text: userText, time: userTime };
+    setMessages((prev) => [...prev, userMsg]);
+    setIsStreaming(true);
+
+    // Build API history from all messages + new user message
+    const history = [
+      ...messages.map((m) => ({ role: m.role, content: m.text })),
+      { role: 'user', content: userText },
+    ];
+
+    // Create placeholder for streaming response
+    const assistantId = Date.now() + 1;
+    setMessages((prev) => [
+      ...prev,
+      { id: assistantId, role: 'assistant', text: '', time: now() },
+    ]);
+
+    try {
+      const stream = await clientRef.current.messages.stream({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1024,
+        system: getSystemPrompt(profile),
+        messages: history,
+      });
+
+      for await (const chunk of stream) {
+        if (
+          chunk.type === 'content_block_delta' &&
+          chunk.delta.type === 'text_delta'
+        ) {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantId ? { ...m, text: m.text + chunk.delta.text } : m
+            )
+          );
+        }
+      }
+    } catch (err) {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantId
+            ? { ...m, text: 'Sorry, something went wrong. Please try again.' }
+            : m
+        )
+      );
+    } finally {
+      setIsStreaming(false);
+    }
   };
 
   const onKeyDown = (e) => {
@@ -272,6 +344,10 @@ function ChatInterface({ onBack }) {
         {messages.map((m) => (
           <ChatBubble key={m.id} message={m} />
         ))}
+        {isStreaming && messages[messages.length - 1]?.text === '' && (
+          <TypingIndicator />
+        )}
+        <div ref={bottomRef} />
       </div>
 
       {/* Input */}
@@ -283,14 +359,15 @@ function ChatInterface({ onBack }) {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={onKeyDown}
             placeholder="Ask Flio anything..."
-            className="flex-1 bg-transparent text-white text-sm placeholder-white/25 focus:outline-none"
+            disabled={isStreaming}
+            className="flex-1 bg-transparent text-white text-sm placeholder-white/25 focus:outline-none disabled:opacity-50"
           />
           <button
             onClick={send}
-            disabled={!input.trim()}
+            disabled={!input.trim() || isStreaming}
             className="w-7 h-7 rounded-full bg-[#c9a84c] disabled:bg-white/10 flex items-center justify-center transition-colors flex-shrink-0"
           >
-            <SendIcon className="w-3.5 h-3.5 text-[#060d1f] disabled:text-white/30" />
+            <SendIcon className="w-3.5 h-3.5 text-[#060d1f]" />
           </button>
         </div>
       </div>
@@ -298,10 +375,17 @@ function ChatInterface({ onBack }) {
   );
 }
 
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+function now() {
+  return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
 // ── App Shell ──────────────────────────────────────────────────────────────
 
 export default function App() {
-  const [screen, setScreen] = useState('landing'); // 'landing' | 'profile' | 'chat'
+  const [screen, setScreen] = useState('landing');
+  const [profile, setProfile] = useState({});
 
   return (
     <>
@@ -314,11 +398,14 @@ export default function App() {
       {screen === 'profile' && (
         <ProfileSetup
           onBack={() => setScreen('landing')}
-          onComplete={() => setScreen('chat')}
+          onComplete={(savedProfile) => {
+            setProfile(savedProfile);
+            setScreen('chat');
+          }}
         />
       )}
       {screen === 'chat' && (
-        <ChatInterface onBack={() => setScreen('landing')} />
+        <ChatInterface onBack={() => setScreen('landing')} profile={profile} />
       )}
     </>
   );
