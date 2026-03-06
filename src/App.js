@@ -351,6 +351,94 @@ function ProfileSetup({ onBack, onComplete }) {
   );
 }
 
+// ── Trip Summary Card ──────────────────────────────────────────────────────
+
+async function getSummaryData(client, history, assistantText) {
+  try {
+    const response = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 600,
+      messages: [
+        ...history,
+        { role: 'assistant', content: assistantText },
+        {
+          role: 'user',
+          content:
+            'Based on this travel conversation, return ONLY a raw JSON object — no markdown, no code blocks, no explanation. Use exactly these fields: bestCard (string), pointsToRedeem (number), pointValue (number), pointsRemaining (number), cashSavings (number), bookingSteps (array of strings). If the conversation does not contain a specific booking recommendation with enough numerical detail to populate these fields, return exactly: null',
+        },
+      ],
+    });
+    const text = response.content[0].text.trim();
+    if (text === 'null') return null;
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+function MetricCell({ label, value, sub, highlight }) {
+  return (
+    <div className="bg-[#060d1f] px-4 py-3">
+      <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1">{label}</p>
+      <p className={`text-sm font-medium leading-snug ${highlight ? 'text-[#c9a84c]' : 'text-white'}`}>
+        {value}
+      </p>
+      {sub && <p className="text-[10px] text-white/40 mt-0.5">{sub}</p>}
+    </div>
+  );
+}
+
+function TripSummaryCard({ summary }) {
+  if (!summary) return null;
+  return (
+    <div className="ml-9 mb-4 rounded-xl border border-[#c9a84c]/30 bg-[#0a1328] overflow-hidden animate-fade-in-up">
+      {/* Header */}
+      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#c9a84c]/15">
+        <span className="text-[#c9a84c] text-xs leading-none">✦</span>
+        <span className="text-[10px] font-semibold text-[#c9a84c] uppercase tracking-widest">
+          Trip Summary
+        </span>
+      </div>
+
+      {/* Metrics grid */}
+      <div className="grid grid-cols-2 gap-px bg-white/[0.04]">
+        <MetricCell label="Best Card" value={summary.bestCard ?? '—'} />
+        <MetricCell
+          label="Points to Redeem"
+          value={summary.pointsToRedeem != null ? summary.pointsToRedeem.toLocaleString() + ' pts' : '—'}
+          sub={summary.pointValue != null ? `~$${summary.pointValue.toLocaleString()} value` : undefined}
+        />
+        <MetricCell
+          label="Points Remaining"
+          value={summary.pointsRemaining != null ? summary.pointsRemaining.toLocaleString() + ' pts' : '—'}
+        />
+        <MetricCell
+          label="Est. Cash Savings"
+          value={summary.cashSavings != null ? `~$${summary.cashSavings.toLocaleString()}` : '—'}
+          highlight
+        />
+      </div>
+
+      {/* Booking steps */}
+      {summary.bookingSteps?.length > 0 && (
+        <div className="px-4 py-3 border-t border-white/[0.04]">
+          <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2.5">Booking Order</p>
+          <ol className="space-y-2">
+            {summary.bookingSteps.map((step, i) => (
+              <li key={i} className="flex items-start gap-2.5 text-xs text-white/70 leading-relaxed">
+                <span className="flex-shrink-0 w-4 h-4 rounded-full bg-[#c9a84c]/20 border border-[#c9a84c]/30 text-[#c9a84c] text-[9px] flex items-center justify-center font-semibold mt-0.5">
+                  {i + 1}
+                </span>
+                {step}
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Chat Interface ─────────────────────────────────────────────────────────
 
 const GREETING = "Hi! I'm Flio, your AI travel concierge. Where are you thinking of going next?";
@@ -437,7 +525,7 @@ function ChatInterface({ onBack, profile }) {
     const assistantId = Date.now() + 1;
     setMessages((prev) => [
       ...prev,
-      { id: assistantId, role: 'assistant', text: '', time: now() },
+      { id: assistantId, role: 'assistant', text: '', time: now(), summary: undefined },
     ]);
 
     try {
@@ -448,11 +536,13 @@ function ChatInterface({ onBack, profile }) {
         messages: history,
       });
 
+      let fullText = '';
       for await (const chunk of stream) {
         if (
           chunk.type === 'content_block_delta' &&
           chunk.delta.type === 'text_delta'
         ) {
+          fullText += chunk.delta.text;
           setMessages((prev) =>
             prev.map((m) =>
               m.id === assistantId ? { ...m, text: m.text + chunk.delta.text } : m
@@ -460,6 +550,14 @@ function ChatInterface({ onBack, profile }) {
           );
         }
       }
+
+      // Fire summary extraction after streaming completes
+      setIsStreaming(false);
+      const summary = await getSummaryData(clientRef.current, history, fullText);
+      setMessages((prev) =>
+        prev.map((m) => (m.id === assistantId ? { ...m, summary } : m))
+      );
+      return; // skip finally setIsStreaming
     } catch (err) {
       setMessages((prev) =>
         prev.map((m) =>
@@ -499,7 +597,12 @@ function ChatInterface({ onBack, profile }) {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-6">
         {messages.map((m) => (
-          <ChatBubble key={m.id} message={m} />
+          <div key={m.id}>
+            <ChatBubble message={m} />
+            {m.role === 'assistant' && m.summary && (
+              <TripSummaryCard summary={m.summary} />
+            )}
+          </div>
         ))}
         {isStreaming && messages[messages.length - 1]?.text === '' && (
           <TypingIndicator />
