@@ -2312,6 +2312,238 @@ function TripBriefModal({ onSubmit, onSkip }) {
   );
 }
 
+// ── Deal Checker ────────────────────────────────────────────────────────────
+
+function buildDealProfileCtx(profile) {
+  const programs = profile?.loyaltyPrograms ?? [];
+  const cards    = profile?.creditCards ?? [];
+  const lines = [];
+  if (profile?.homeAirport) lines.push(`Home airport: ${profile.homeAirport.city} (${profile.homeAirport.code})`);
+  if (programs.length) lines.push(`Loyalty programs: ${programs.map((p) => `${p.name}${p.balance > 0 ? ` (${p.balance.toLocaleString()} ${p.currency})` : ''}`).join(', ')}`);
+  if (cards.length) lines.push(`Credit cards: ${cards.map((c) => c.name).join(', ')}`);
+  return lines.join('\n') || 'No profile set up yet.';
+}
+
+const VERDICT_CONFIG = {
+  GREAT: { label: '✅  GREAT DEAL', color: '#22c55e', bg: 'rgba(34,197,94,0.09)',  border: 'rgba(34,197,94,0.25)' },
+  GOOD:  { label: '⚡  GOOD DEAL',  color: '#c9a84c', bg: 'rgba(201,168,76,0.09)', border: 'rgba(201,168,76,0.30)' },
+  BAD:   { label: '❌  BAD DEAL',   color: '#ef4444', bg: 'rgba(239,68,68,0.09)',  border: 'rgba(239,68,68,0.25)' },
+};
+
+function VerdictCard({ result }) {
+  const cfg = VERDICT_CONFIG[result.verdict] ?? VERDICT_CONFIG.BAD;
+  return (
+    <div className="bg-[#0d1526] border border-white/[0.08] rounded-2xl overflow-hidden mb-5 animate-fade-in-up">
+      {/* Badge row */}
+      <div className="px-5 py-4 border-b border-white/[0.05]" style={{ backgroundColor: cfg.bg }}>
+        <div className="flex items-start justify-between gap-3 mb-1">
+          <span className="text-base font-bold leading-tight" style={{ color: cfg.color }}>
+            {cfg.label}
+          </span>
+          <span className="text-2xl font-bold flex-shrink-0 tabular-nums" style={{ color: cfg.color }}>
+            {result.centsPerPoint}¢
+          </span>
+        </div>
+        <p className="text-white/35 text-xs leading-snug">{result.query}</p>
+      </div>
+
+      {/* Metrics */}
+      <div className="px-5 py-4 space-y-3 border-b border-white/[0.05]">
+        {[
+          { label: "Value you're getting", value: `${result.centsPerPoint}¢ per point` },
+          { label: 'Benchmark',            value: result.benchmark },
+          { label: 'Dollar value',         value: result.dollarValue },
+        ].map(({ label, value }) => (
+          <div key={label} className="flex items-start justify-between gap-4">
+            <span className="text-white/35 text-xs flex-shrink-0">{label}</span>
+            <span className="text-white/75 text-xs text-right">{value}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Better Option */}
+      {result.betterOption && result.verdict !== 'GREAT' && (
+        <div className="mx-4 my-4 p-4 rounded-xl border border-[#c9a84c]/25 bg-[#c9a84c]/[0.05]">
+          <p className="text-[10px] text-[#c9a84c] uppercase tracking-widest mb-1.5 font-semibold">Better Option</p>
+          <p className="text-white/70 text-sm leading-relaxed">{result.betterOption}</p>
+        </div>
+      )}
+
+      {/* Bottom line */}
+      <div className="px-5 pb-5">
+        <p className="text-white/45 text-sm leading-relaxed">
+          <span className="text-white/25 text-xs uppercase tracking-wider mr-1.5">Bottom line</span>
+          {result.bottomLine}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function DealHistoryItem({ result, onSelect }) {
+  const cfg = VERDICT_CONFIG[result.verdict] ?? VERDICT_CONFIG.BAD;
+  return (
+    <button
+      onClick={() => onSelect(result)}
+      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition-colors text-left"
+    >
+      <span className="text-sm flex-shrink-0" style={{ color: cfg.color }}>
+        {result.verdict === 'GREAT' ? '✅' : result.verdict === 'GOOD' ? '⚡' : '❌'}
+      </span>
+      <div className="flex-1 min-w-0">
+        <p className="text-white/65 text-xs truncate">{result.query}</p>
+      </div>
+      <span className="text-xs font-semibold flex-shrink-0 tabular-nums" style={{ color: cfg.color }}>
+        {result.centsPerPoint}¢
+      </span>
+    </button>
+  );
+}
+
+function DealChecker({ profile, client }) {
+  const [dealInput, setDealInput] = useState('');
+  const [loading, setLoading]     = useState(false);
+  const [current, setCurrent]     = useState(null);
+  const [history, setHistory]     = useState([]);
+
+  const checkDeal = useCallback(async () => {
+    const query = dealInput.trim();
+    if (!query || loading) return;
+    setDealInput('');
+    setLoading(true);
+    setCurrent(null);
+
+    const profileCtx = buildDealProfileCtx(profile);
+
+    try {
+      const response = await client.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 512,
+        system: `You are a travel points valuation expert. Return ONLY a valid JSON object — no prose, no markdown — with exactly these fields:
+{
+  "verdict": "GREAT" | "GOOD" | "BAD",
+  "centsPerPoint": number,
+  "benchmark": string,
+  "dollarValue": string,
+  "betterOption": string,
+  "bottomLine": string
+}
+Rules: GREAT = above 1.5¢/pt, GOOD = 0.8–1.5¢/pt, BAD = below 0.8¢/pt.`,
+        messages: [{
+          role: 'user',
+          content: `Redemption to evaluate: ${query}\n\nUser travel profile:\n${profileCtx}\n\nCalculate the cents-per-point value, compare to this program's benchmark, give a verdict, and suggest one specific better alternative if it's not GREAT. Respond only in JSON.`,
+        }],
+      });
+
+      const text = response.content[0]?.text ?? '';
+      const match = text.match(/\{[\s\S]*\}/);
+      const json  = match ? JSON.parse(match[0]) : {};
+
+      const result = {
+        query,
+        verdict:       String(json.verdict ?? 'BAD').toUpperCase(),
+        centsPerPoint: Number(json.centsPerPoint ?? 0).toFixed(2),
+        benchmark:     json.benchmark   ?? '',
+        dollarValue:   json.dollarValue ?? '',
+        betterOption:  json.betterOption ?? '',
+        bottomLine:    json.bottomLine  ?? '',
+      };
+
+      setCurrent(result);
+      setHistory((prev) => [result, ...prev]);
+    } catch {
+      setCurrent({ error: true, query });
+    } finally {
+      setLoading(false);
+    }
+  }, [dealInput, loading, profile, client]);
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Input bar */}
+      <div className="px-4 pt-4 pb-3 flex-shrink-0">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={dealInput}
+            onChange={(e) => setDealInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && checkDeal()}
+            placeholder='e.g. "24,000 Marriott points for a night in NYC"'
+            className="input-gold flex-1 bg-[#111d35] border border-white/[0.08] rounded-full px-4 py-2.5 text-white text-sm placeholder-white/20 outline-none"
+          />
+          <button
+            onClick={checkDeal}
+            disabled={!dealInput.trim() || loading}
+            className="btn-gold flex-shrink-0 bg-[#c9a84c] hover:bg-[#d4af37] disabled:bg-white/[0.08] text-[#060d1f] disabled:text-white/20 font-semibold px-5 py-2.5 rounded-full text-sm transition-all"
+          >
+            {loading ? '…' : 'Check'}
+          </button>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto px-4 pb-6">
+        {/* Loading */}
+        {loading && (
+          <div className="flex flex-col items-center justify-center gap-3 py-16">
+            <div className="flex gap-1.5">
+              {[0, 1, 2].map((i) => (
+                <span
+                  key={i}
+                  className="w-2 h-2 rounded-full bg-[#c9a84c]/60 typing-dot"
+                  style={{ animationDelay: `${i * 0.22}s` }}
+                />
+              ))}
+            </div>
+            <p className="text-white/30 text-xs">Evaluating this redemption…</p>
+          </div>
+        )}
+
+        {/* Error */}
+        {!loading && current?.error && (
+          <div className="bg-red-950/20 border border-red-900/25 rounded-2xl px-5 py-4 mb-5">
+            <p className="text-red-400/80 text-sm">Something went wrong evaluating "{current.query}". Please try again.</p>
+          </div>
+        )}
+
+        {/* Current result */}
+        {!loading && current && !current.error && (
+          <VerdictCard result={current} />
+        )}
+
+        {/* Empty state */}
+        {!loading && !current && history.length === 0 && (
+          <div className="flex flex-col items-center justify-center gap-3 py-16 text-center px-4">
+            <div className="w-12 h-12 rounded-full bg-[#c9a84c]/10 border border-[#c9a84c]/20 flex items-center justify-center mb-1">
+              <span className="text-xl">⚡</span>
+            </div>
+            <p className="text-white/45 text-sm font-medium">Is this redemption worth it?</p>
+            <p className="text-white/25 text-xs max-w-xs leading-relaxed">
+              Paste any redemption above and find out instantly — cents per point, benchmarks, and a better alternative if one exists.
+            </p>
+          </div>
+        )}
+
+        {/* Previous checks */}
+        {history.length > (current && !current.error ? 1 : 0) && (
+          <div className="mt-2">
+            <p className="text-[10px] text-white/20 uppercase tracking-widest mb-2 px-1">Previous checks</p>
+            <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl overflow-hidden">
+              {history
+                .slice(current && !current.error ? 1 : 0)
+                .map((r, i) => (
+                  <div key={i} className="border-b border-white/[0.04] last:border-none">
+                    <DealHistoryItem result={r} onSelect={setCurrent} />
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Chat Interface ──────────────────────────────────────────────────────────
 
 function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips, onSaveTrip, onDeleteTrip }) {
@@ -2323,6 +2555,8 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
   ]);
   const messagesRef = useRef(messages);
   useEffect(() => { messagesRef.current = messages; }, [messages]);
+
+  const [chatTab, setChatTab] = useState('planner'); // 'planner' | 'deals'
 
   const [tripBrief, setTripBrief] = useState(null);
   const tripBriefRef = useRef(null);
@@ -2556,8 +2790,8 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
   return (
     <div className="h-screen bg-[#0a0f1e] font-['DM_Sans',sans-serif] flex flex-col relative overflow-hidden">
 
-      {/* Trip Brief Modal */}
-      {showTripBrief && (
+      {/* Trip Brief Modal — planner tab only */}
+      {showTripBrief && chatTab === 'planner' && (
         <TripBriefModal
           onSubmit={submitBrief}
           onSkip={() => setShowTripBrief(false)}
@@ -2662,7 +2896,33 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
         </div>
       </div>
 
-      {/* Main: split panel */}
+      {/* Mode tabs */}
+      <div className="flex items-center px-4 border-b border-white/5 bg-[#0a0f1e] flex-shrink-0">
+        {[
+          { id: 'planner', label: 'Trip Planner' },
+          { id: 'deals',   label: 'Deal Checker' },
+        ].map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setChatTab(t.id)}
+            className={`tab-btn py-3 mr-5 text-sm ${chatTab === t.id ? 'tab-active text-white' : 'text-white/35 hover:text-white/60'}`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Deal Checker screen */}
+      {chatTab === 'deals' && (
+        <div className="flex-1 flex overflow-hidden">
+          <div className="flex-col overflow-hidden w-full md:max-w-2xl md:mx-auto flex">
+            <DealChecker profile={profile} client={clientRef.current} />
+          </div>
+        </div>
+      )}
+
+      {/* Main: split panel (planner tab) */}
+      {chatTab === 'planner' && (
       <div className="flex-1 flex overflow-hidden">
 
         {/* Left: Chat (full width on mobile, 60% on desktop) */}
@@ -2729,9 +2989,10 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
           <TripIntelligencePanel {...intelligencePanelProps} />
         </div>
       </div>
+      )} {/* end chatTab === 'planner' */}
 
       {/* Mobile: intelligence drawer */}
-      {mobileIntelOpen && (
+      {chatTab === 'planner' && mobileIntelOpen && (
         <div className="md:hidden fixed inset-0 z-40 flex flex-col justify-end">
           <div className="absolute inset-0 bg-black/50 glass-panel" onClick={() => setMobileIntelOpen(false)} />
           <div className="relative bg-[#0a0f1e] border-t border-white/8 rounded-t-2xl flex flex-col" style={{ maxHeight: '80vh' }}>
