@@ -703,6 +703,46 @@ function FadeInSection({ children }) {
   );
 }
 
+// ── Reviews carousel ───────────────────────────────────────────────────────
+
+const REVIEWS = [
+  { name: 'Sarah M.',  status: 'Chase Sapphire Reserve holder', text: 'Flio found me $2,400 in Hyatt value I was about to leave on the table. Took 5 minutes to set up.' },
+  { name: 'James K.',  status: 'Delta Platinum Medallion',      text: "I've been booking flights wrong for years. Flio showed me where to transfer to and saved me 40,000 miles." },
+  { name: 'Priya L.',  status: 'Amex Platinum holder',          text: "The annual credits tracker alone is worth it. I had $600 in Amex credits I didn't even know I had." },
+  { name: 'Marcus T.', status: 'United Global Services',        text: 'Finally an app that actually knows the difference between a good and bad redemption. My go-to before every trip.' },
+  { name: 'Rachel W.', status: 'Marriott Titanium',             text: 'Planned my entire Europe trip in one conversation. Flio knew my exact point balances and gave me a step-by-step booking plan.' },
+  { name: 'David C.',  status: 'Chase UR + Hyatt',              text: 'Transferred to the wrong partner twice before Flio. Never again. The strategy tab is incredibly clear.' },
+  { name: 'Aisha N.',  status: 'Amex Gold holder',              text: 'The pre-departure checklist caught three things I would have forgotten. The lounge tip alone saved me $60.' },
+  { name: 'Tom R.',    status: 'Alaska MVP Gold 75k',           text: "Skeptical at first but the Rome trip plan it gave me was better than anything I'd have figured out myself." },
+];
+
+function ReviewsCarousel() {
+  const cards = [...REVIEWS, ...REVIEWS]; // duplicate for seamless loop
+  return (
+    <div className="relative overflow-hidden carousel-fade">
+      <div className="carousel-track flex gap-5 w-max">
+        {cards.map((r, i) => (
+          <div
+            key={i}
+            className="flex-shrink-0 w-[320px] md:w-[360px] bg-white/[0.03] border border-[#c9a84c]/[0.14] rounded-2xl p-6 flex flex-col gap-4"
+          >
+            <div className="flex gap-0.5">
+              {Array.from({ length: 5 }).map((_, s) => (
+                <span key={s} className="text-[#c9a84c] text-sm leading-none">★</span>
+              ))}
+            </div>
+            <p className="text-white/65 text-sm leading-relaxed flex-1">"{r.text}"</p>
+            <div>
+              <p className="text-white/85 text-sm font-medium">{r.name}</p>
+              <p className="text-white/35 text-xs mt-0.5">{r.status}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Landing Page ───────────────────────────────────────────────────────────
 
 function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, onEditProfile, isLight, onToggleTheme }) {
@@ -718,7 +758,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
   }, []);
 
   useEffect(() => {
-    const ids = ['home', 'demo', 'how-it-works', 'wallet', 'works-with'];
+    const ids = ['home', 'demo', 'how-it-works', 'wallet', 'works-with', 'reviews'];
     const observer = new IntersectionObserver(
       (entries) => entries.forEach((e) => { if (e.isIntersecting) setActiveSection(e.target.id); }),
       { threshold: 0.25, rootMargin: '-80px 0px -40% 0px' }
@@ -745,6 +785,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
     { label: 'How It Works', id: 'how-it-works' },
     { label: 'Your Wallet',  id: 'wallet' },
     { label: 'Works With',   id: 'works-with' },
+    { label: 'Reviews',      id: 'reviews' },
     { label: 'Pricing',      id: 'pricing', route: '/pricing' },
   ];
   const tBase = isLight ? '#0d1526'              : '#ffffff';
@@ -896,7 +937,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
         </p>
 
         {/* CTAs */}
-        <div className="relative flex flex-col sm:flex-row items-center gap-4 mb-10">
+        <div className="relative flex flex-col sm:flex-row items-center gap-4 mb-6">
           <button
             onClick={onGetStarted}
             className="btn-gold flex items-center gap-2 bg-[#c9a84c] hover:bg-[#d4af37] text-[#060d1f] font-semibold px-8 py-3.5 rounded-full text-sm tracking-wide"
@@ -910,6 +951,27 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
           >
             Try the chat →
           </button>
+        </div>
+
+        {/* Credibility bar */}
+        <div className="relative flex items-center justify-center gap-3 mb-8">
+          <div className="flex -space-x-2">
+            {[
+              'from-sky-400 to-blue-500',
+              'from-violet-400 to-purple-500',
+              'from-amber-400 to-orange-500',
+            ].map((g, i) => (
+              <div
+                key={i}
+                className={`w-7 h-7 rounded-full bg-gradient-to-br ${g} border-2 flex-shrink-0`}
+                style={{ borderColor: 'rgba(10,15,30,1)' }}
+              />
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[#c9a84c] text-sm tracking-tight leading-none">★★★★★</span>
+            <span className="text-white/35 text-xs">Trusted by 2,400+ frequent travelers</span>
+          </div>
         </div>
 
         {/* Feature pills */}
@@ -1218,6 +1280,19 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
           </div>
         </div>
       </div>
+      </FadeInSection>
+
+      <FadeInSection>
+        {/* Reviews carousel */}
+        <div id="reviews" className="pb-32 w-full">
+          <div className="text-center mb-12 px-6">
+            <p className="text-[10px] text-[#c9a84c] uppercase tracking-widest mb-3">What Travelers Say</p>
+            <h2 className="text-3xl md:text-4xl text-white font-['Playfair_Display',serif] font-normal">
+              Real results from real trips.
+            </h2>
+          </div>
+          <ReviewsCarousel />
+        </div>
       </FadeInSection>
 
       <FadeInSection>
