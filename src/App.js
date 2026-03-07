@@ -3715,7 +3715,7 @@ function computeTravelerWalletValue(traveler) {
   ].reduce((a, b) => a + b, 0);
 }
 
-function TravelerCard({ name, initial, programs, cards, value, isPrimary, isExpanded, onEdit, onDelete }) {
+function TravelerCard({ name, initial, programs, cards, value, isPrimary, isExpanded, onToggle, onEdit, onDelete }) {
   const totalItems = programs.length + cards.length;
   return (
     <div className="w-full bg-white/[0.025] border border-white/[0.06] rounded-2xl overflow-hidden">
@@ -3732,30 +3732,34 @@ function TravelerCard({ name, initial, programs, cards, value, isPrimary, isExpa
               : `${totalItems} program${totalItems !== 1 ? 's' : ''}${value > 0 ? ` · $${value.toLocaleString()}` : ''}`}
           </p>
         </div>
-        {!isPrimary && (
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            {onEdit && (
-              <button
-                onClick={onEdit}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/[0.05] text-white/40 hover:text-white/70 hover:bg-white/[0.09] transition-all text-[11px] whitespace-nowrap"
-              >
-                <svg className="w-3 h-3 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                Edit
-              </button>
-            )}
-            {onDelete && (
-              <button
-                onClick={onDelete}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/[0.05] text-white/40 hover:text-red-400 hover:bg-red-400/[0.07] transition-all text-[11px] whitespace-nowrap"
-              >
-                <TrashIcon className="w-3 h-3 flex-shrink-0" />
-                Remove
-              </button>
-            )}
-          </div>
-        )}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {!isPrimary && onEdit && (
+            <button
+              onClick={onEdit}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/[0.05] text-white/40 hover:text-white/70 hover:bg-white/[0.09] transition-all text-[11px] whitespace-nowrap"
+            >
+              <svg className="w-3 h-3 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              Edit
+            </button>
+          )}
+          {!isPrimary && onDelete && (
+            <button
+              onClick={onDelete}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/[0.05] text-white/40 hover:text-red-400 hover:bg-red-400/[0.07] transition-all text-[11px] whitespace-nowrap"
+            >
+              <TrashIcon className="w-3 h-3 flex-shrink-0" />
+              Remove
+            </button>
+          )}
+          <button
+            onClick={onToggle}
+            className="w-7 h-7 flex items-center justify-center text-white/25 hover:text-white/55 transition-colors rounded-lg hover:bg-white/[0.05]"
+          >
+            <ChevronDownIcon className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+          </button>
+        </div>
       </div>
 
       {/* Expanded breakdown */}
@@ -3971,9 +3975,15 @@ function AddTravelerModal({ onSave, onClose, initial = null }) {
 }
 
 function TravelersSection({ profile, travelers, onSaveTravelers, showHeader = true }) {
-  const [allExpanded, setAllExpanded] = useState(false);
+  const [expandedIds, setExpandedIds] = useState(new Set());
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingTraveler, setEditingTraveler] = useState(null);
+
+  const toggleExpand = (id) => setExpandedIds((prev) => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
 
   const primaryValue  = computeTravelerWalletValue(profile);
   const totalCombined = [primaryValue, ...travelers.map(computeTravelerWalletValue)].reduce((a, b) => a + b, 0);
@@ -3997,20 +4007,12 @@ function TravelersSection({ profile, travelers, onSaveTravelers, showHeader = tr
       {showHeader && (
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-white font-medium">Travelers</h3>
-          <div className="flex items-center gap-4">
-            {totalCombined > 0 && (
-              <div className="text-right">
-                <p className="text-[10px] text-white/30 uppercase tracking-widest">Combined Wallet</p>
-                <p className="text-[#c9a84c] text-sm font-semibold">${totalCombined.toLocaleString()}</p>
-              </div>
-            )}
-            <button
-              onClick={() => setAllExpanded((p) => !p)}
-              className="flex items-center gap-1 text-white/35 hover:text-white/65 transition-colors text-xs"
-            >
-              <ChevronDownIcon className={`w-4 h-4 transition-transform duration-200 ${allExpanded ? 'rotate-180' : ''}`} />
-            </button>
-          </div>
+          {totalCombined > 0 && (
+            <div className="text-right">
+              <p className="text-[10px] text-white/30 uppercase tracking-widest">Combined Wallet</p>
+              <p className="text-[#c9a84c] text-sm font-semibold">${totalCombined.toLocaleString()}</p>
+            </div>
+          )}
         </div>
       )}
 
@@ -4022,7 +4024,8 @@ function TravelersSection({ profile, travelers, onSaveTravelers, showHeader = tr
           cards={profile?.creditCards ?? []}
           value={primaryValue}
           isPrimary
-          isExpanded={allExpanded}
+          isExpanded={expandedIds.has('primary')}
+          onToggle={() => toggleExpand('primary')}
         />
 
         {travelers.map((t) => (
@@ -4034,7 +4037,8 @@ function TravelersSection({ profile, travelers, onSaveTravelers, showHeader = tr
             cards={t.creditCards ?? []}
             value={computeTravelerWalletValue(t)}
             isPrimary={false}
-            isExpanded={allExpanded}
+            isExpanded={expandedIds.has(t.id)}
+            onToggle={() => toggleExpand(t.id)}
             onEdit={() => { setEditingTraveler(t); setShowAddModal(true); }}
             onDelete={() => handleDelete(t.id)}
           />
@@ -4207,8 +4211,9 @@ function ProfileDashboard({ profile, usedCredits, onToggleCredit, onSave, onBack
         </div>
 
         {/* ── 2. Travel Wallet ─────────────────────────────────────── */}
-        <section className="mb-12">
+        <section className="mb-10">
           <DashSectionLabel label="Portfolio">Travel Wallet</DashSectionLabel>
+          <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-8">
 
             {/* Loyalty Programs column */}
@@ -4272,10 +4277,11 @@ function ProfileDashboard({ profile, usedCredits, onToggleCredit, onSave, onBack
               }
             </div>
           </div>
+          </div>
         </section>
 
         {/* ── 3. Annual Credits ────────────────────────────────────── */}
-        <section className="mb-12">
+        <section className="mb-10">
           <div className="flex items-end justify-between mb-5">
             <DashSectionLabel label="Benefits">Annual Credits</DashSectionLabel>
             {creditsAvailable > 0 && (
@@ -4285,6 +4291,7 @@ function ProfileDashboard({ profile, usedCredits, onToggleCredit, onSave, onBack
               </div>
             )}
           </div>
+          <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5">
           {eligibleCards.length === 0
             ? <p className="text-white/20 text-xs">Add eligible cards to track your credits.</p>
             : <div className="space-y-7">
@@ -4328,10 +4335,11 @@ function ProfileDashboard({ profile, usedCredits, onToggleCredit, onSave, onBack
               })}
             </div>
           }
+          </div>
         </section>
 
         {/* ── 4. Travelers ─────────────────────────────────────────── */}
-        <section className="mb-12">
+        <section className="mb-10">
           <DashSectionLabel label="Party">Travelers</DashSectionLabel>
           <TravelersSection
             profile={profile}
@@ -4342,7 +4350,7 @@ function ProfileDashboard({ profile, usedCredits, onToggleCredit, onSave, onBack
         </section>
 
         {/* ── 5. Card Recommendation ───────────────────────────────── */}
-        <section className="mb-12">
+        <section className="mb-10">
           <button
             onClick={() => setQuizOpen(true)}
             className="w-full flex items-center justify-between px-5 py-4 rounded-xl bg-white/[0.025] border border-white/[0.06] hover:border-[#c9a84c]/25 hover:bg-[#c9a84c]/[0.04] transition-all duration-200 group"
@@ -4358,9 +4366,10 @@ function ProfileDashboard({ profile, usedCredits, onToggleCredit, onSave, onBack
         </section>
 
         {/* ── 6. Profile Settings ──────────────────────────────────── */}
-        <section className="mb-12">
+        <section className="mb-10">
           <DashSectionLabel label="Preferences">Profile Settings</DashSectionLabel>
-          <div className="border-t border-white/[0.05]">
+          <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl px-5">
+          <div className="border-t border-white/[0.05] first:border-t-0">
 
             {/* Home Airport */}
             <SettingsRow
@@ -4435,6 +4444,7 @@ function ProfileDashboard({ profile, usedCredits, onToggleCredit, onSave, onBack
               </div>
             </SettingsRow>
 
+          </div>
           </div>
         </section>
 
