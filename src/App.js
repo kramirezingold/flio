@@ -1510,7 +1510,7 @@ function TripIntelligencePanel({ intelligence, loading, activeTab, onTabChange, 
             </div>
             <div>
               <p className="text-white/30 text-sm font-['Playfair_Display',serif] mb-1.5">Your trip intelligence</p>
-              <p className="text-white/18 text-xs leading-relaxed max-w-[160px] mx-auto">
+              <p className="text-white/30 text-xs leading-relaxed max-w-[160px] mx-auto">
                 Start a conversation and Flio will build your strategy here in real time.
               </p>
             </div>
