@@ -2195,6 +2195,125 @@ function ChatBubble({ message }) {
   );
 }
 
+// ── Trip Brief Modal ────────────────────────────────────────────────────────
+
+function TripBriefModal({ onSubmit, onSkip }) {
+  const [destination, setDestination] = useState('');
+  const [dates, setDates]             = useState('');
+  const [travelers, setTravelers]     = useState(1);
+  const [priority, setPriority]       = useState('Balance both');
+
+  const handleSubmit = () => {
+    if (!destination.trim()) return;
+    onSubmit({ destination: destination.trim(), dates: dates.trim(), travelers, priority });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div
+        className="relative bg-[#0d1526] border border-white/[0.08] rounded-2xl p-8 max-w-md w-full shadow-[0_24px_64px_rgba(0,0,0,0.6)] animate-fade-in-up"
+        style={{ animationDuration: '0.25s' }}
+      >
+        {/* Skip */}
+        <button
+          onClick={onSkip}
+          className="absolute top-4 right-5 text-white/25 hover:text-white/55 text-xs transition-colors"
+        >
+          Skip →
+        </button>
+
+        {/* Header */}
+        <div className="mb-7">
+          <p className="text-[10px] text-[#c9a84c] uppercase tracking-widest mb-2">New Trip</p>
+          <h2 className="text-xl font-semibold text-white">Where are we headed?</h2>
+          <p className="text-white/35 text-sm mt-1">Quick details give Flio a head start.</p>
+        </div>
+
+        <div className="space-y-5">
+          {/* Destination */}
+          <div>
+            <label className="text-xs text-white/40 mb-1.5 block">Destination</label>
+            <input
+              type="text"
+              value={destination}
+              onChange={(e) => setDestination(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+              placeholder="Rome, Italy"
+              autoFocus
+              className="input-gold w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 text-white text-sm placeholder:text-white/20"
+            />
+          </div>
+
+          {/* Dates */}
+          <div>
+            <label className="text-xs text-white/40 mb-1.5 block">When?</label>
+            <input
+              type="text"
+              value={dates}
+              onChange={(e) => setDates(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+              placeholder="July 20–27"
+              className="input-gold w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 text-white text-sm placeholder:text-white/20"
+            />
+          </div>
+
+          {/* Travelers */}
+          <div>
+            <label className="text-xs text-white/40 mb-2 block">Travelers</label>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setTravelers((t) => Math.max(1, t - 1))}
+                className="w-8 h-8 rounded-full bg-white/[0.06] border border-white/[0.08] text-white/60 hover:text-white hover:bg-white/10 flex items-center justify-center text-xl font-light leading-none transition-colors"
+              >
+                −
+              </button>
+              <span className="text-white font-semibold text-base w-4 text-center tabular-nums">{travelers}</span>
+              <button
+                onClick={() => setTravelers((t) => Math.min(6, t + 1))}
+                className="w-8 h-8 rounded-full bg-white/[0.06] border border-white/[0.08] text-white/60 hover:text-white hover:bg-white/10 flex items-center justify-center text-xl font-light leading-none transition-colors"
+              >
+                +
+              </button>
+              <span className="text-white/30 text-xs ml-1">{travelers === 1 ? 'Just me' : `${travelers} people`}</span>
+            </div>
+          </div>
+
+          {/* Priority */}
+          <div>
+            <label className="text-xs text-white/40 mb-2 block">Priority</label>
+            <div className="flex gap-2 flex-wrap">
+              {['Maximize comfort', 'Maximize value', 'Balance both'].map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPriority(p)}
+                  className={`text-xs px-3.5 py-2 rounded-full border transition-all duration-150 ${
+                    priority === p
+                      ? 'bg-[#c9a84c]/15 border-[#c9a84c]/50 text-[#c9a84c]'
+                      : 'bg-white/[0.04] border-white/[0.08] text-white/45 hover:text-white/70 hover:border-white/20'
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={handleSubmit}
+          disabled={!destination.trim()}
+          className="mt-7 w-full btn-gold bg-[#c9a84c] hover:bg-[#d4af37] disabled:opacity-35 disabled:cursor-not-allowed text-[#060d1f] font-semibold py-3 rounded-xl text-sm transition-all duration-200"
+        >
+          Start planning →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Chat Interface ──────────────────────────────────────────────────────────
+
 function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips, onSaveTrip, onDeleteTrip }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentTripId, setCurrentTripId] = useState(null);
@@ -2204,6 +2323,11 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
   ]);
   const messagesRef = useRef(messages);
   useEffect(() => { messagesRef.current = messages; }, [messages]);
+
+  const [tripBrief, setTripBrief] = useState(null);
+  const tripBriefRef = useRef(null);
+  useEffect(() => { tripBriefRef.current = tripBrief; }, [tripBrief]);
+  const [showTripBrief, setShowTripBrief] = useState(true);
 
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
@@ -2230,21 +2354,60 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
   }, [messages, isStreaming]);
 
   const startNewTrip = () => {
+    setTripBrief(null);
     setMessages([{ id: Date.now(), role: 'assistant', text: buildGreeting(profile), time: now() }]);
     currentTripIdRef.current = null;
     setCurrentTripId(null);
     setSidebarOpen(false);
     setIntelligence(null);
     setNewTabIndicators({ overview: false, checklist: false, strategy: false });
+    setShowTripBrief(true);
   };
 
   const loadTrip = (trip) => {
+    setShowTripBrief(false);
+    setTripBrief(null);
     setMessages(trip.messages);
     currentTripIdRef.current = trip.id;
     setCurrentTripId(trip.id);
     setSidebarOpen(false);
     setIntelligence(trip.intelligence ?? null);
     setNewTabIndicators({ overview: false, checklist: false, strategy: false });
+  };
+
+  const submitBrief = async (brief) => {
+    setShowTripBrief(false);
+    setTripBrief(brief);
+
+    const assistantId = Date.now();
+    setMessages([{ id: assistantId, role: 'assistant', text: '', time: now() }]);
+    setIsStreaming(true);
+
+    const travelers = brief.travelers === 1 ? 'just me' : `${brief.travelers} travelers`;
+    const hiddenPrompt = `My trip brief: going to ${brief.destination}${brief.dates ? `, ${brief.dates}` : ''}, ${travelers}, priority is ${brief.priority.toLowerCase()}. Please give me a quick, punchy opening — acknowledge the trip details in one line (like "Got it — ${brief.destination}${brief.dates ? `, ${brief.dates}` : ''}, ${travelers}, ${brief.priority.toLowerCase()}."), then immediately give me 2-3 concrete, specific initial thoughts based on my actual cards and points for this trip. Be direct and specific — no fluff.`;
+
+    try {
+      const stream = await clientRef.current.messages.stream({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 600,
+        system: getSystemPrompt(profile, brief),
+        messages: [{ role: 'user', content: hiddenPrompt }],
+      });
+
+      let fullText = '';
+      for await (const chunk of stream) {
+        if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+          fullText += chunk.delta.text;
+          setMessages((prev) =>
+            prev.map((m) => (m.id === assistantId ? { ...m, text: m.text + chunk.delta.text } : m))
+          );
+        }
+      }
+    } catch {
+      setMessages([{ id: assistantId, role: 'assistant', text: buildGreeting(profile), time: now() }]);
+    } finally {
+      setIsStreaming(false);
+    }
   };
 
   const handleDeleteTrip = (id) => {
@@ -2314,7 +2477,7 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
       const stream = await clientRef.current.messages.stream({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1024,
-        system: getSystemPrompt(profile),
+        system: getSystemPrompt(profile, tripBriefRef.current),
         messages: history,
       });
 
@@ -2392,6 +2555,14 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
 
   return (
     <div className="h-screen bg-[#0a0f1e] font-['DM_Sans',sans-serif] flex flex-col relative overflow-hidden">
+
+      {/* Trip Brief Modal */}
+      {showTripBrief && (
+        <TripBriefModal
+          onSubmit={submitBrief}
+          onSkip={() => setShowTripBrief(false)}
+        />
+      )}
 
       {/* Sidebar backdrop */}
       {sidebarOpen && (

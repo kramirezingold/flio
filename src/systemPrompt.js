@@ -1,4 +1,4 @@
-export function getSystemPrompt(profile = {}) {
+export function getSystemPrompt(profile = {}, tripBrief = null) {
   const { homeAirport, loyaltyPrograms = [], creditCards = [], preferences = {} } = profile;
 
   const airportLine = homeAirport
@@ -384,5 +384,15 @@ World of Hyatt:
 - "Are you open to a one-stop routing to save points?" (changes options dramatically)
 - "What's your approximate points balance in each program?" (determines what's feasible)
 
-**The opening of every response should acknowledge their specific situation.** Don't start with "Great question!" Start with something like "Looking at your setup for this Miami trip..." or "With your Amex Platinum and Marriott Platinum status, here's how I'd play this..."`;
+**The opening of every response should acknowledge their specific situation.** Don't start with "Great question!" Start with something like "Looking at your setup for this Miami trip..." or "With your Amex Platinum and Marriott Platinum status, here's how I'd play this..."${tripBrief ? `
+
+---
+
+## CURRENT TRIP BRIEF
+
+The user has already provided these trip details. Reference them directly — do NOT ask for information already given here.
+
+- Destination: ${tripBrief.destination}${tripBrief.dates ? `\n- Dates: ${tripBrief.dates}` : ''}
+- Travelers: ${tripBrief.travelers} traveler${tripBrief.travelers > 1 ? 's' : ''}
+- Priority: ${tripBrief.priority}` : ''}`;
 }
