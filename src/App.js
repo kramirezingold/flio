@@ -693,20 +693,22 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
           <p className="text-[10px] text-[#c9a84c] uppercase tracking-widest mb-3">How it works</p>
           <h2 className="text-3xl md:text-4xl font-light text-white">Smart travel advice in seconds.</h2>
         </div>
-        <div className="relative flex flex-col md:flex-row gap-4 md:gap-0">
-          <div className="hidden md:block absolute top-10 left-[calc(16.67%+1rem)] right-[calc(16.67%+1rem)] h-px bg-gradient-to-r from-[#c9a84c]/20 via-[#c9a84c]/40 to-[#c9a84c]/20 z-0" />
+        <div className="relative grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-0">
+          {/* Connecting line — sits at vertical center of the step number */}
+          <div className="hidden md:block absolute top-10 left-[calc(16.67%+1.5rem)] right-[calc(16.67%+1.5rem)] h-px bg-gradient-to-r from-[#c9a84c]/20 via-[#c9a84c]/40 to-[#c9a84c]/20 z-0" />
           {[
             { num: '01', title: 'Build your profile', desc: 'Add your home airport, loyalty programs with balances, and travel credit cards. Takes 2 minutes.' },
             { num: '02', title: 'Describe your trip', desc: 'Tell Flio where you want to go in plain English. No forms, no dropdowns, just talk.' },
             { num: '03', title: 'Get your plan', desc: 'Flio tells you exactly which points to use, which card to pay with, and in what order to book.' },
           ].map((step, i) => (
-            <div key={step.num} className="relative z-10 flex-1 flex md:flex-col md:items-center gap-5 md:gap-0 md:px-6">
+            <div key={step.num} className="relative z-10 md:px-6">
+              {/* Arrow centered exactly on the connecting line */}
               {i < 2 && (
-                <div className="hidden md:flex absolute -right-3 top-8 z-20 items-center justify-center w-6 h-6">
-                  <ChevronRightIcon className="w-4 h-4 text-[#c9a84c]/50" />
+                <div className="hidden md:flex absolute -right-3 top-10 -translate-y-1/2 z-20 items-center justify-center w-6 h-6">
+                  <ChevronRightIcon className="w-4 h-4 text-[#c9a84c]/60" />
                 </div>
               )}
-              <div className="group flex-1 md:flex-none md:w-full bg-[#0a1328] border border-white/8 hover:border-[#c9a84c]/30 rounded-2xl p-6 transition-all duration-300 cursor-default">
+              <div className="h-full bg-[#0a1328] border border-white/8 hover:border-[#c9a84c]/30 hover:scale-[1.03] rounded-2xl p-6 transition-all duration-300 cursor-default">
                 <p className="text-[#c9a84c] text-3xl font-light tracking-tight mb-4">{step.num}</p>
                 <p className="text-white font-semibold text-base mb-2">{step.title}</p>
                 <p className="text-white/45 text-sm leading-relaxed">{step.desc}</p>
