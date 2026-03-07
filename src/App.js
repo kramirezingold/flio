@@ -729,7 +729,10 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
     setMenuOpen(false);
     if (id === 'home') { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
     const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (!el) return;
+    const offset = 64 + 20; // nav height + breathing room
+    const top = el.getBoundingClientRect().top + window.scrollY - offset;
+    window.scrollTo({ top, behavior: 'smooth' });
   };
 
   const NAV_LINKS = [
