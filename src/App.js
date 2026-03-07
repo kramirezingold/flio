@@ -4390,24 +4390,6 @@ function ProfileDashboard({ profile, usedCredits, onToggleCredit, onSave, onBack
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-function AnimatedNumber({ value, duration = 1100 }) {
-  const [displayed, setDisplayed] = useState(0);
-  useEffect(() => {
-    if (!value || value === 0) return;
-    let start = null;
-    const step = (ts) => {
-      if (!start) start = ts;
-      const elapsed = ts - start;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setDisplayed(Math.round(eased * value));
-      if (progress < 1) requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
-  }, [value, duration]);
-  return <>{value > 0 ? displayed.toLocaleString() : '—'}</>;
-}
-
 function now() {
   return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
