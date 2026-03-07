@@ -1299,6 +1299,89 @@ function TripSummaryCard({ summary }) {
   );
 }
 
+// ── Pre-Departure Checklist ────────────────────────────────────────────────
+
+function ChecklistCard({ checklist, onToggleItem }) {
+  if (checklist.generating) {
+    return (
+      <div className="ml-9 mb-4 rounded-xl border border-white/8 bg-[#0c1628] px-4 py-4 flex items-center gap-3">
+        <div className="flex items-center gap-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c]/60 animate-bounce" style={{ animationDelay: '0ms' }} />
+          <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c]/60 animate-bounce" style={{ animationDelay: '150ms' }} />
+          <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c]/60 animate-bounce" style={{ animationDelay: '300ms' }} />
+        </div>
+        <span className="text-xs text-white/40">Generating your checklist…</span>
+      </div>
+    );
+  }
+
+  if (checklist.error) {
+    return (
+      <div className="ml-9 mb-4 rounded-xl border border-red-900/30 bg-[#0c1628] px-4 py-3">
+        <p className="text-xs text-red-400/60">Couldn't generate checklist. Try again later.</p>
+      </div>
+    );
+  }
+
+  const allItems = checklist.sections?.flatMap((s) => s.items) ?? [];
+  const completed = allItems.filter((i) => i.checked).length;
+  const total = allItems.length;
+
+  return (
+    <div className="ml-9 mb-4 rounded-xl border border-[#c9a84c]/15 bg-[#0c1628] overflow-hidden animate-fade-in-up">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
+        <div className="flex items-center gap-2">
+          <span className="text-sm leading-none">📋</span>
+          <span className="text-[10px] font-semibold text-[#c9a84c] uppercase tracking-widest">Pre-Departure Checklist</span>
+        </div>
+        <span className="text-xs text-white/35">{completed} of {total} completed</span>
+      </div>
+
+      {/* Sections */}
+      <div className="divide-y divide-white/[0.04]">
+        {checklist.sections?.map((section) => (
+          <div key={section.title} className="px-4 py-4">
+            <p className="text-[9px] text-white/30 uppercase tracking-widest mb-3">{section.title}</p>
+            <div className="space-y-2.5">
+              {section.items.map((item) => (
+                <label key={item.id} className="flex items-start gap-2.5 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={item.checked}
+                    onChange={() => onToggleItem(section.title, item.id)}
+                    className="mt-0.5 flex-shrink-0 w-3.5 h-3.5 accent-[#c9a84c] cursor-pointer"
+                  />
+                  <span className={`text-sm leading-relaxed transition-all duration-200 select-none ${
+                    item.checked
+                      ? 'line-through text-white/20'
+                      : 'text-white/70 group-hover:text-white/90'
+                  }`}>
+                    {item.text}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Progress bar */}
+      <div className="px-4 py-2.5 border-t border-white/[0.04] flex items-center gap-3">
+        <div className="flex-1 h-1 bg-white/[0.06] rounded-full overflow-hidden">
+          <div
+            className="h-full bg-[#c9a84c] rounded-full transition-all duration-500"
+            style={{ width: total > 0 ? `${(completed / total) * 100}%` : '0%' }}
+          />
+        </div>
+        {completed === total && total > 0 && (
+          <span className="text-[10px] text-[#c9a84c] flex-shrink-0">All done ✓</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Trip History ────────────────────────────────────────────────────────────
 
 const TRIPS_KEY = 'flio-trips';
@@ -1425,6 +1508,83 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
       setCurrentTripId(null);
     }
     onDeleteTrip(id);
+  };
+
+  // ID of the last completed assistant message (not the greeting) — where the checklist button shows
+  const lastAssistantMsgId = messages
+    .filter((m) => m.role === 'assistant' && m.text && m.text !== GREETING)
+    .at(-1)?.id ?? null;
+
+  const saveTripFromMessages = (updated) => {
+    if (!currentTripIdRef.current) return;
+    const title = (updated.find((m) => m.role === 'user')?.text ?? 'Trip').slice(0, 60);
+    onSaveTrip({ id: currentTripIdRef.current, title, date: new Date().toISOString(), messages: updated });
+  };
+
+  const generateChecklist = async (messageId) => {
+    setMessages((prev) => prev.map((m) => m.id === messageId ? { ...m, checklist: { generating: true } } : m));
+
+    const history = messages
+      .filter((m) => m.text && m.text !== GREETING)
+      .map((m) => ({ role: m.role, content: m.text }));
+
+    const profileCtx = [
+      profile.homeAirport ? `Home airport: ${profile.homeAirport.city} (${profile.homeAirport.code})` : '',
+      profile.creditCards?.length ? `Credit cards: ${profile.creditCards.map((c) => c.name).join(', ')}` : '',
+      profile.loyaltyPrograms?.length ? `Loyalty programs: ${profile.loyaltyPrograms.map((p) => p.name).join(', ')}` : '',
+      profile.preferences?.cabin ? `Preferred cabin: ${profile.preferences.cabin}` : '',
+    ].filter(Boolean).join('. ');
+
+    try {
+      const response = await clientRef.current.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1800,
+        messages: [
+          ...history,
+          {
+            role: 'user',
+            content: `Profile: ${profileCtx}. Based on this travel conversation, generate a personalized pre-departure checklist. Return ONLY a raw JSON object — no markdown, no code blocks, no explanation. Use exactly this structure: {"sections":[{"title":"2 Weeks Before","items":[{"id":"w2-1","text":"...","checked":false}]},{"title":"1 Week Before","items":[{"id":"w1-1","text":"...","checked":false}]},{"title":"Day Before","items":[{"id":"db-1","text":"...","checked":false}]},{"title":"At The Airport","items":[{"id":"ap-1","text":"...","checked":false}]}]}. Requirements: reference the traveler's actual card and program names throughout; include specific transfer partner actions, lounge names based on airport and cards, credit enrollment reminders, and status perks; 4-6 specific actionable items per section.`,
+          },
+        ],
+      });
+
+      const raw = response.content[0].text.trim()
+        .replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+      const checklist = JSON.parse(raw);
+
+      setMessages((prev) => {
+        const updated = prev.map((m) => m.id === messageId ? { ...m, checklist } : m);
+        saveTripFromMessages(updated);
+        return updated;
+      });
+    } catch (err) {
+      console.error('[Flio checklist error]', err);
+      setMessages((prev) => prev.map((m) => m.id === messageId ? { ...m, checklist: { error: true } } : m));
+    }
+  };
+
+  const toggleChecklistItem = (messageId, sectionTitle, itemId) => {
+    setMessages((prev) => {
+      const updated = prev.map((m) => {
+        if (m.id !== messageId || !m.checklist?.sections) return m;
+        return {
+          ...m,
+          checklist: {
+            ...m.checklist,
+            sections: m.checklist.sections.map((s) =>
+              s.title !== sectionTitle ? s : {
+                ...s,
+                items: s.items.map((item) =>
+                  item.id !== itemId ? item : { ...item, checked: !item.checked }
+                ),
+              }
+            ),
+          },
+        };
+      });
+      saveTripFromMessages(updated);
+      return updated;
+    });
   };
 
   const send = async () => {
@@ -1605,6 +1765,27 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
             <ChatBubble message={m} />
             {m.role === 'assistant' && m.summary && (
               <TripSummaryCard summary={m.summary} />
+            )}
+            {m.role === 'assistant' && m.checklist && (
+              <ChecklistCard
+                checklist={m.checklist}
+                onToggleItem={(sectionTitle, itemId) => toggleChecklistItem(m.id, sectionTitle, itemId)}
+              />
+            )}
+            {m.role === 'assistant' &&
+              m.id === lastAssistantMsgId &&
+              !m.checklist &&
+              !isStreaming &&
+              m.text !== GREETING && (
+              <div className="ml-9 mb-4">
+                <button
+                  onClick={() => generateChecklist(m.id)}
+                  className="flex items-center gap-2 text-xs text-white/40 hover:text-white/70 border border-white/10 hover:border-white/20 rounded-full px-3 py-1.5 transition-all duration-200"
+                >
+                  <span className="text-sm leading-none">📋</span>
+                  Generate Pre-Departure Checklist
+                </button>
+              </div>
             )}
           </div>
         ))}
