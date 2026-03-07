@@ -4043,66 +4043,67 @@ function computeTravelerWalletValue(traveler) {
   ].reduce((a, b) => a + b, 0);
 }
 
-function TravelerCard({ name, initial, programs, cards, value, isPrimary, isExpanded, onToggleExpand, onEdit, onDelete }) {
+function TravelerCard({ name, initial, programs, cards, value, isPrimary, isExpanded, onEdit, onDelete }) {
   const totalItems = programs.length + cards.length;
   return (
-    <div className="flex-1 min-w-0 bg-white/[0.025] border border-white/[0.06] rounded-2xl overflow-hidden">
-      <button
-        onClick={onToggleExpand}
-        className="w-full flex items-center gap-3 p-4 hover:bg-white/[0.02] transition-colors text-left"
-      >
+    <div className="w-full bg-white/[0.025] border border-white/[0.06] rounded-2xl overflow-hidden">
+      {/* Header row */}
+      <div className="flex items-center gap-3 px-4 py-4">
         <div className="w-9 h-9 rounded-full bg-[#c9a84c]/15 border border-[#c9a84c]/25 flex items-center justify-center flex-shrink-0">
           <span className="text-[#c9a84c] text-sm font-semibold">{initial}</span>
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-white/85 text-sm font-medium leading-tight truncate">{name}</p>
+          <p className="text-white/85 text-sm font-medium leading-tight">{name}</p>
           <p className="text-white/30 text-xs mt-0.5">
             {totalItems === 0
               ? 'No programs'
               : `${totalItems} program${totalItems !== 1 ? 's' : ''}${value > 0 ? ` · $${value.toLocaleString()}` : ''}`}
           </p>
         </div>
-        <div className="flex items-center gap-1 flex-shrink-0">
-          {!isPrimary && onEdit && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onEdit(); }}
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-white/25 hover:text-white/60 hover:bg-white/[0.06] transition-all"
-              title="Edit"
-            >
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-            </button>
-          )}
-          {!isPrimary && onDelete && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onDelete(); }}
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-white/25 hover:text-red-400 hover:bg-red-400/[0.08] transition-all"
-              title="Delete"
-            >
-              <TrashIcon className="w-3.5 h-3.5" />
-            </button>
-          )}
-          <ChevronDownIcon className={`w-4 h-4 text-white/25 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
-        </div>
-      </button>
+        {!isPrimary && (
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            {onEdit && (
+              <button
+                onClick={onEdit}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/[0.05] text-white/40 hover:text-white/70 hover:bg-white/[0.09] transition-all text-[11px] whitespace-nowrap"
+              >
+                <svg className="w-3 h-3 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Edit
+              </button>
+            )}
+            {onDelete && (
+              <button
+                onClick={onDelete}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/[0.05] text-white/40 hover:text-red-400 hover:bg-red-400/[0.07] transition-all text-[11px] whitespace-nowrap"
+              >
+                <TrashIcon className="w-3 h-3 flex-shrink-0" />
+                Remove
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Expanded breakdown */}
       {isExpanded && (
         <div className="border-t border-white/[0.05] px-4 pb-4">
           {programs.length > 0 && (
             <div className="pt-3">
               <p className="text-[10px] text-white/25 uppercase tracking-widest mb-2">Programs</p>
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {programs.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div style={{ backgroundColor: p.color }} className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0">
+                  <div key={p.id} className="flex items-center gap-3">
+                    <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+                      <div style={{ backgroundColor: p.color }} className="w-4 h-4 rounded-full flex items-center justify-center">
                         <span className="text-white text-[6px] font-bold">{p.initials}</span>
                       </div>
-                      <span className="text-white/55 text-xs">{p.shortName}</span>
                     </div>
-                    {p.balance > 0 && (
-                      <span className="text-white/35 text-xs tabular-nums">{p.balance.toLocaleString()} {p.currency}</span>
-                    )}
+                    <span className="flex-1 text-white/55 text-xs">{p.shortName}</span>
+                    <span className="flex-shrink-0 text-white/35 text-xs tabular-nums text-right w-32">
+                      {p.balance > 0 ? `${p.balance.toLocaleString()} ${p.currency}` : '—'}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -4111,16 +4112,16 @@ function TravelerCard({ name, initial, programs, cards, value, isPrimary, isExpa
           {cards.length > 0 && (
             <div className="pt-3">
               <p className="text-[10px] text-white/25 uppercase tracking-widest mb-2">Cards</p>
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {cards.map((c) => (
-                  <div key={c.id} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div style={{ background: c.bg }} className="w-5 h-3.5 rounded flex-shrink-0" />
-                      <span className="text-white/55 text-xs">{c.shortName}</span>
+                  <div key={c.id} className="flex items-center gap-3">
+                    <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+                      <div style={{ background: c.bg }} className="w-5 h-3.5 rounded" />
                     </div>
-                    {c.balance > 0 && (
-                      <span className="text-white/35 text-xs tabular-nums">{c.balance.toLocaleString()} {c.currency}</span>
-                    )}
+                    <span className="flex-1 text-white/55 text-xs">{c.shortName}</span>
+                    <span className="flex-shrink-0 text-white/35 text-xs tabular-nums text-right w-32">
+                      {c.balance > 0 ? `${c.balance.toLocaleString()} ${c.currency}` : '—'}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -4298,7 +4299,7 @@ function AddTravelerModal({ onSave, onClose, initial = null }) {
 }
 
 function TravelersSection({ profile, travelers, onSaveTravelers }) {
-  const [expanded, setExpanded] = useState(null);
+  const [allExpanded, setAllExpanded] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingTraveler, setEditingTraveler] = useState(null);
 
@@ -4315,7 +4316,6 @@ function TravelersSection({ profile, travelers, onSaveTravelers }) {
 
   const handleDelete = (id) => {
     onSaveTravelers(travelers.filter((t) => t.id !== id));
-    if (expanded === id) setExpanded(null);
   };
 
   const canAdd = travelers.length < 3;
@@ -4324,15 +4324,23 @@ function TravelersSection({ profile, travelers, onSaveTravelers }) {
     <div className="mb-8">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-white font-medium">Travelers</h3>
-        {totalCombined > 0 && (
-          <div className="text-right">
-            <p className="text-[10px] text-white/30 uppercase tracking-widest">Combined Wallet</p>
-            <p className="text-[#c9a84c] text-sm font-semibold">${totalCombined.toLocaleString()}</p>
-          </div>
-        )}
+        <div className="flex items-center gap-4">
+          {totalCombined > 0 && (
+            <div className="text-right">
+              <p className="text-[10px] text-white/30 uppercase tracking-widest">Combined Wallet</p>
+              <p className="text-[#c9a84c] text-sm font-semibold">${totalCombined.toLocaleString()}</p>
+            </div>
+          )}
+          <button
+            onClick={() => setAllExpanded((p) => !p)}
+            className="flex items-center gap-1 text-white/35 hover:text-white/65 transition-colors text-xs"
+          >
+            <ChevronDownIcon className={`w-4 h-4 transition-transform duration-200 ${allExpanded ? 'rotate-180' : ''}`} />
+          </button>
+        </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3">
+      <div className="flex flex-col gap-3">
         <TravelerCard
           name="Primary Traveler"
           initial="P"
@@ -4340,8 +4348,7 @@ function TravelersSection({ profile, travelers, onSaveTravelers }) {
           cards={profile?.creditCards ?? []}
           value={primaryValue}
           isPrimary
-          isExpanded={expanded === 'primary'}
-          onToggleExpand={() => setExpanded((p) => p === 'primary' ? null : 'primary')}
+          isExpanded={allExpanded}
         />
 
         {travelers.map((t) => (
@@ -4353,8 +4360,7 @@ function TravelersSection({ profile, travelers, onSaveTravelers }) {
             cards={t.creditCards ?? []}
             value={computeTravelerWalletValue(t)}
             isPrimary={false}
-            isExpanded={expanded === t.id}
-            onToggleExpand={() => setExpanded((p) => p === t.id ? null : t.id)}
+            isExpanded={allExpanded}
             onEdit={() => { setEditingTraveler(t); setShowAddModal(true); }}
             onDelete={() => handleDelete(t.id)}
           />
@@ -4363,10 +4369,10 @@ function TravelersSection({ profile, travelers, onSaveTravelers }) {
         {canAdd && (
           <button
             onClick={() => { setEditingTraveler(null); setShowAddModal(true); }}
-            className="flex-1 min-w-[130px] flex flex-col items-center justify-center gap-2 p-5 rounded-2xl border-2 border-dashed border-white/[0.1] hover:border-[#c9a84c]/35 hover:bg-[#c9a84c]/[0.03] transition-all duration-200 min-h-[88px]"
+            className="w-full flex items-center justify-center gap-2.5 px-4 py-4 rounded-2xl border-2 border-dashed border-white/[0.1] hover:border-[#c9a84c]/35 hover:bg-[#c9a84c]/[0.03] transition-all duration-200"
           >
-            <div className="w-8 h-8 rounded-full border border-dashed border-white/20 flex items-center justify-center">
-              <PlusIcon className="w-3.5 h-3.5 text-white/30" />
+            <div className="w-6 h-6 rounded-full border border-dashed border-white/25 flex items-center justify-center flex-shrink-0">
+              <PlusIcon className="w-3 h-3 text-white/30" />
             </div>
             <span className="text-white/30 text-xs">Add Traveler</span>
           </button>
