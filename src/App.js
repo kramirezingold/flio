@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { Routes, Route, useNavigate } from 'react-router-dom';
 import Anthropic from '@anthropic-ai/sdk';
 import { getSystemPrompt } from './systemPrompt';
 
@@ -705,6 +706,7 @@ function FadeInSection({ children }) {
 // ── Landing Page ───────────────────────────────────────────────────────────
 
 function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, onEditProfile, isLight, onToggleTheme }) {
+  const navigate = useNavigate();
   const [scrolled, setScrolled]       = useState(false);
   const [activeSection, setActiveSection] = useState('home');
   const [menuOpen, setMenuOpen]       = useState(false);
@@ -716,7 +718,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
   }, []);
 
   useEffect(() => {
-    const ids = ['home', 'demo', 'how-it-works', 'wallet', 'works-with', 'pricing'];
+    const ids = ['home', 'demo', 'how-it-works', 'wallet', 'works-with'];
     const observer = new IntersectionObserver(
       (entries) => entries.forEach((e) => { if (e.isIntersecting) setActiveSection(e.target.id); }),
       { threshold: 0.25, rootMargin: '-80px 0px -40% 0px' }
@@ -725,8 +727,9 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
     return () => observer.disconnect();
   }, []);
 
-  const scrollToSection = (id) => {
+  const scrollToSection = (id, route) => {
     setMenuOpen(false);
+    if (route) { navigate(route); return; }
     setActiveSection(id); // immediate highlight on click — observer handles natural scroll
     if (id === 'home') { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
     const el = document.getElementById(id);
@@ -742,7 +745,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
     { label: 'How It Works', id: 'how-it-works' },
     { label: 'Your Wallet',  id: 'wallet' },
     { label: 'Works With',   id: 'works-with' },
-    { label: 'Pricing',      id: 'pricing' },
+    { label: 'Pricing',      id: 'pricing', route: '/pricing' },
   ];
   const tBase = isLight ? '#0d1526'              : '#ffffff';
   const tDim  = isLight ? 'rgba(13,21,38,0.52)'  : 'rgba(255,255,255,0.45)';
@@ -775,7 +778,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
             return (
               <button
                 key={link.id}
-                onClick={() => scrollToSection(link.id)}
+                onClick={() => scrollToSection(link.id, link.route)}
                 className="text-sm pb-0.5"
                 style={{
                   color: isActive ? '#c9a84c' : tDim,
@@ -826,7 +829,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
             return (
               <button
                 key={link.id}
-                onClick={() => scrollToSection(link.id)}
+                onClick={() => scrollToSection(link.id, link.route)}
                 className="text-sm text-left pb-0.5 w-fit"
                 style={{
                   color: isActive ? '#c9a84c' : tDim,
@@ -2938,6 +2941,337 @@ function now() {
   return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
+// ── Pricing Page ────────────────────────────────────────────────────────────
+
+const FAQ_ITEMS = [
+  { q: 'Is my data private?', a: 'Yes, all your profile data stays on your device. No account required.' },
+  { q: 'Can I cancel anytime?', a: 'Yes, no contracts or commitments.' },
+  { q: 'What loyalty programs does Flio support?', a: 'All major US airline and hotel programs including United, Delta, American, Alaska, Southwest, Hyatt, Marriott, and Hilton.' },
+  { q: 'Is Flio affiliated with any airline or credit card?', a: 'No. Flio is independent and gives unbiased advice based on your specific situation.' },
+];
+
+function FAQItem({ q, a }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border-b border-white/[0.08]">
+      <button
+        className="w-full text-left py-5 flex items-center justify-between gap-4"
+        onClick={() => setOpen((p) => !p)}
+      >
+        <span className="text-white/85 text-sm font-medium">{q}</span>
+        <ChevronDownIcon className={`w-4 h-4 text-white/40 flex-shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && <p className="text-white/55 text-sm pb-5 leading-relaxed">{a}</p>}
+    </div>
+  );
+}
+
+function WaitlistModal({ tier, onClose }) {
+  const [email, setEmail] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = () => {
+    if (!email.trim()) return;
+    const key = 'flio-waitlist';
+    const list = JSON.parse(localStorage.getItem(key) || '[]');
+    list.push({ email: email.trim(), tier, date: new Date().toISOString() });
+    localStorage.setItem(key, JSON.stringify(list));
+    setSubmitted(true);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div
+        className="relative bg-[#0d1526] border border-white/10 rounded-2xl p-8 max-w-md w-full shadow-[0_24px_64px_rgba(0,0,0,0.6)]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-white/30 hover:text-white/60 transition-colors"
+        >
+          <XIcon className="w-5 h-5" />
+        </button>
+        {!submitted ? (
+          <>
+            <h2 className="text-2xl font-semibold text-white mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>
+              You're early.
+            </h2>
+            <p className="text-white/50 text-sm mb-6 leading-relaxed">
+              Flio Pro is coming soon. Drop your email and we'll notify you when it launches.
+            </p>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+              placeholder="your@email.com"
+              className="input-gold w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm mb-4 placeholder:text-white/25"
+            />
+            <button
+              onClick={handleSubmit}
+              className="btn-gold w-full bg-[#c9a84c] hover:bg-[#d4af37] text-[#060d1f] font-semibold py-3 rounded-xl text-sm"
+            >
+              Notify Me
+            </button>
+          </>
+        ) : (
+          <div className="text-center py-4">
+            <div className="w-12 h-12 rounded-full bg-[#c9a84c]/15 border border-[#c9a84c]/30 flex items-center justify-center mx-auto mb-4">
+              <CheckIcon className="w-6 h-6 text-[#c9a84c]" />
+            </div>
+            <h2 className="text-xl font-semibold text-white mb-2">You're on the list.</h2>
+            <p className="text-white/50 text-sm">We'll be in touch when Flio {tier === 'elite' ? 'Elite' : 'Pro'} launches.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PricingPage({ isLight, onToggleTheme }) {
+  const navigate = useNavigate();
+  const [annual, setAnnual] = useState(false);
+  const [waitlist, setWaitlist] = useState(null);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  const tBase = isLight ? '#0d1526' : '#ffffff';
+  const tDim  = isLight ? 'rgba(13,21,38,0.52)' : 'rgba(255,255,255,0.45)';
+
+  const PLANS = [
+    {
+      id: 'free',
+      name: 'Free',
+      price: { monthly: 0, annual: 0 },
+      desc: 'Perfect for getting started',
+      features: [
+        '5 trip plans per month',
+        'Basic points optimization',
+        'Up to 3 loyalty programs',
+        'No trip history',
+      ],
+      cta: 'Get Started →',
+      ctaAction: () => navigate('/'),
+      popular: false,
+    },
+    {
+      id: 'pro',
+      name: 'Pro',
+      price: { monthly: 9, annual: 7 },
+      desc: 'For the frequent traveler',
+      features: [
+        'Unlimited trip plans',
+        'Full points wallet dashboard',
+        'All loyalty programs + credit cards',
+        'Trip history + PDF export',
+        'Pre-departure checklists',
+        'Priority AI responses',
+      ],
+      cta: 'Join Waitlist →',
+      ctaAction: () => setWaitlist('pro'),
+      popular: true,
+    },
+    {
+      id: 'elite',
+      name: 'Elite',
+      price: { monthly: 19, annual: 15 },
+      desc: 'For the power traveler',
+      features: [
+        'Everything in Pro',
+        'Multi-traveler trips',
+        'Calendar integration',
+        'Exclusive transfer partner sweet spots',
+        'Dedicated concierge mode',
+        'Early access to new features',
+      ],
+      cta: 'Join Waitlist →',
+      ctaAction: () => setWaitlist('elite'),
+      popular: false,
+    },
+  ];
+
+  return (
+    <div className={`min-h-screen font-['DM_Sans',sans-serif] ${isLight ? 'bg-[#f2ede3] lm' : 'bg-[#0a0f1e]'}`}>
+      <div className="noise-overlay" aria-hidden="true" />
+
+      {/* Nav */}
+      <nav
+        className={`sticky top-0 z-50 flex items-center justify-between px-6 h-16 backdrop-blur-md transition-shadow duration-300 ${
+          scrolled ? (isLight ? 'shadow-[0_4px_24px_rgba(0,0,0,0.08)]' : 'shadow-[0_4px_32px_rgba(0,0,0,0.45)]') : ''
+        }`}
+        style={{
+          backgroundColor: isLight ? 'rgba(242,237,227,0.93)' : 'rgba(10,15,30,0.88)',
+          borderBottom: `1px solid ${isLight ? 'rgba(13,21,38,0.08)' : 'rgba(255,255,255,0.04)'}`,
+          transition: 'background-color 0.3s ease, box-shadow 0.3s ease',
+        }}
+      >
+        <button onClick={() => navigate('/')} className="flex items-center gap-2 flex-shrink-0">
+          <PlaneIcon className="w-4 h-4 text-[#c9a84c]" />
+          <span className="font-semibold tracking-widest text-sm uppercase" style={{ color: tBase }}>Flio</span>
+        </button>
+
+        <div className="hidden md:flex items-center gap-7">
+          <button
+            onClick={() => navigate('/')}
+            className="text-sm pb-0.5"
+            style={{ color: tDim, borderBottom: '1px solid transparent', transition: 'color 0.2s ease' }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = tBase; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = tDim; }}
+          >
+            Home
+          </button>
+          <span
+            className="text-sm pb-0.5"
+            style={{ color: '#c9a84c', borderBottom: '1px solid rgba(201,168,76,0.55)' }}
+          >
+            Pricing
+          </span>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <ThemeToggle isLight={isLight} onToggle={onToggleTheme} />
+          <button
+            onClick={() => navigate('/')}
+            className="hidden md:flex btn-gold items-center gap-1.5 bg-[#c9a84c] hover:bg-[#d4af37] text-[#060d1f] font-semibold px-5 py-2 rounded-full text-sm"
+          >
+            Get Started
+          </button>
+        </div>
+      </nav>
+
+      {/* Header */}
+      <div className="pt-20 pb-14 px-6 text-center">
+        <h1
+          className="text-4xl md:text-5xl font-semibold text-white mb-4 leading-tight"
+          style={{ fontFamily: "'Playfair Display', serif" }}
+        >
+          Simple, transparent pricing
+        </h1>
+        <p className="text-white/50 text-lg mb-10">Start free. Upgrade when you're ready.</p>
+
+        {/* Monthly / Annual toggle */}
+        <div className="inline-flex items-center gap-1 bg-white/[0.05] rounded-full px-1.5 py-1.5 border border-white/[0.08]">
+          <button
+            onClick={() => setAnnual(false)}
+            className={`px-4 py-1.5 rounded-full text-sm transition-all duration-200 ${
+              !annual ? 'bg-white/10 text-white font-medium' : 'text-white/45 hover:text-white/65'
+            }`}
+          >
+            Monthly
+          </button>
+          <button
+            onClick={() => setAnnual(true)}
+            className={`px-4 py-1.5 rounded-full text-sm transition-all duration-200 flex items-center gap-2 ${
+              annual ? 'bg-white/10 text-white font-medium' : 'text-white/45 hover:text-white/65'
+            }`}
+          >
+            Annual
+            <span className="text-xs bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/25 px-2 py-0.5 rounded-full font-medium">
+              Save 20%
+            </span>
+          </button>
+        </div>
+      </div>
+
+      {/* Pricing cards */}
+      <div className="px-6 max-w-5xl mx-auto pb-24">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+          {PLANS.map((plan) => (
+            <div
+              key={plan.id}
+              className={`relative rounded-2xl border p-7 flex flex-col transition-all duration-300 ${
+                plan.popular
+                  ? 'border-[#c9a84c]/40 bg-[#0d1526] shadow-[0_0_48px_rgba(201,168,76,0.14),0_12px_40px_rgba(0,0,0,0.5)] md:scale-[1.04] md:-translate-y-2 z-10'
+                  : 'border-white/[0.08] bg-white/[0.03]'
+              }`}
+            >
+              {plan.popular && (
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                  <span className="bg-[#c9a84c] text-[#060d1f] text-xs font-bold px-4 py-1.5 rounded-full tracking-wide uppercase">
+                    Most Popular
+                  </span>
+                </div>
+              )}
+
+              <div className="mb-5">
+                <h3 className="text-white font-semibold text-lg mb-0.5">{plan.name}</h3>
+                <p className="text-white/35 text-xs mb-5">{plan.desc}</p>
+                <div className="flex items-end gap-1.5">
+                  <span className="text-5xl font-bold text-white leading-none">
+                    ${annual ? plan.price.annual : plan.price.monthly}
+                  </span>
+                  <span className="text-white/35 text-sm mb-1">
+                    {plan.price.monthly === 0 ? 'forever' : annual ? '/mo · billed annually' : '/month'}
+                  </span>
+                </div>
+                {annual && plan.price.monthly > 0 && (
+                  <p className="text-white/30 text-xs mt-1.5">
+                    ${plan.price.monthly}/mo billed monthly
+                  </p>
+                )}
+              </div>
+
+              <ul className="flex flex-col gap-3 mb-8 flex-1">
+                {plan.features.map((f) => (
+                  <li key={f} className="flex items-start gap-2.5 text-sm text-white/65">
+                    <CheckIcon className="w-4 h-4 text-[#c9a84c] flex-shrink-0 mt-0.5" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+
+              <button
+                onClick={plan.ctaAction}
+                className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                  plan.popular
+                    ? 'btn-gold bg-[#c9a84c] hover:bg-[#d4af37] text-[#060d1f]'
+                    : 'border border-white/15 text-white/65 hover:text-white hover:border-white/30 hover:bg-white/[0.05]'
+                }`}
+              >
+                {plan.cta}
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* FAQ */}
+      <div className="px-6 max-w-2xl mx-auto pb-24">
+        <h2
+          className="text-2xl font-semibold text-white mb-8 text-center"
+          style={{ fontFamily: "'Playfair Display', serif" }}
+        >
+          Frequently asked questions
+        </h2>
+        <div className="border-t border-white/[0.08]">
+          {FAQ_ITEMS.map((item) => (
+            <FAQItem key={item.q} q={item.q} a={item.a} />
+          ))}
+        </div>
+      </div>
+
+      {/* Bottom CTA */}
+      <div className="px-6 py-20 text-center border-t border-white/[0.05]">
+        <p className="text-white/40 text-sm mb-5">Not sure yet? Start free — no account required.</p>
+        <button
+          onClick={() => navigate('/')}
+          className="btn-gold bg-[#c9a84c] hover:bg-[#d4af37] text-[#060d1f] font-semibold px-8 py-3 rounded-full text-sm"
+        >
+          Try Flio Free →
+        </button>
+      </div>
+
+      {waitlist && <WaitlistModal tier={waitlist} onClose={() => setWaitlist(null)} />}
+    </div>
+  );
+}
+
 // ── App Shell ──────────────────────────────────────────────────────────────
 
 export default function App() {
@@ -3016,48 +3350,59 @@ export default function App() {
   };
 
   return (
-    <>
-      {/* Noise texture overlay — sits above everything, pointer-events-none */}
-      <div className="noise-overlay" aria-hidden="true" />
-      {screen === 'landing' && (
-        <LandingPage
-          onGetStarted={() => setScreen('profile')}
-          onOpenChat={() => setScreen('chat')}
-          onOpenDashboard={() => openDashboard('landing')}
-          hasProfile={!!profile.homeAirport}
-          onEditProfile={() => handleEditProfile('landing')}
-          isLight={isLight}
-          onToggleTheme={toggleTheme}
-        />
-      )}
-      {screen === 'profile' && (
-        <ProfileSetup
-          onBack={() => setScreen(isEditing ? editReturnScreen : 'landing')}
-          onComplete={handleProfileComplete}
-          initialProfile={profile}
-        />
-      )}
-      {screen === 'ready' && <ReadyScreen profile={profile} />}
-      {screen === 'chat' && (
-        <ChatInterface
-          onBack={() => setScreen('landing')}
-          onOpenDashboard={() => openDashboard('chat')}
-          onEditProfile={() => handleEditProfile('chat')}
-          profile={profile}
-          trips={trips}
-          onSaveTrip={saveTrip}
-          onDeleteTrip={deleteTrip}
-        />
-      )}
-      {screen === 'dashboard' && (
-        <ProfileDashboard
-          profile={profile}
-          usedCredits={usedCredits}
-          onToggleCredit={toggleCredit}
-          onSave={saveProfile}
-          onBack={() => setScreen(prevScreenRef.current)}
-        />
-      )}
-    </>
+    <Routes>
+      <Route
+        path="/pricing"
+        element={<PricingPage isLight={isLight} onToggleTheme={toggleTheme} />}
+      />
+      <Route
+        path="/*"
+        element={
+          <>
+            {/* Noise texture overlay — sits above everything, pointer-events-none */}
+            <div className="noise-overlay" aria-hidden="true" />
+            {screen === 'landing' && (
+              <LandingPage
+                onGetStarted={() => setScreen('profile')}
+                onOpenChat={() => setScreen('chat')}
+                onOpenDashboard={() => openDashboard('landing')}
+                hasProfile={!!profile.homeAirport}
+                onEditProfile={() => handleEditProfile('landing')}
+                isLight={isLight}
+                onToggleTheme={toggleTheme}
+              />
+            )}
+            {screen === 'profile' && (
+              <ProfileSetup
+                onBack={() => setScreen(isEditing ? editReturnScreen : 'landing')}
+                onComplete={handleProfileComplete}
+                initialProfile={profile}
+              />
+            )}
+            {screen === 'ready' && <ReadyScreen profile={profile} />}
+            {screen === 'chat' && (
+              <ChatInterface
+                onBack={() => setScreen('landing')}
+                onOpenDashboard={() => openDashboard('chat')}
+                onEditProfile={() => handleEditProfile('chat')}
+                profile={profile}
+                trips={trips}
+                onSaveTrip={saveTrip}
+                onDeleteTrip={deleteTrip}
+              />
+            )}
+            {screen === 'dashboard' && (
+              <ProfileDashboard
+                profile={profile}
+                usedCredits={usedCredits}
+                onToggleCredit={toggleCredit}
+                onSave={saveProfile}
+                onBack={() => setScreen(prevScreenRef.current)}
+              />
+            )}
+          </>
+        }
+      />
+    </Routes>
   );
 }
