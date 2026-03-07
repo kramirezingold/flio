@@ -490,17 +490,14 @@ function DemoChat({ onGetStarted }) {
     return () => observer.disconnect();
   }, [startSequence]);
 
+  // Each message has a fixed visibility threshold — never add/remove DOM nodes
+  const msgVisible = [
+    step >= 1, // user1
+    step >= 3, // assistant1
+    step >= 4, // user2
+    step >= 6, // assistant2
+  ];
   const showTyping = step === 2 || step === 5;
-  const visibleMessages = DEMO.slice(
-    0,
-    step === 0 ? 0
-    : step === 1 ? 1
-    : step === 2 ? 1
-    : step === 3 ? 2
-    : step === 4 ? 3
-    : step === 5 ? 3
-    : 4
-  );
 
   return (
     <section
@@ -531,12 +528,20 @@ function DemoChat({ onGetStarted }) {
           </div>
         </div>
 
-        {/* Messages */}
-        <div className="px-4 py-5 space-y-3 min-h-[200px]">
-          {visibleMessages.map((msg, i) => {
+        {/* Messages — all pre-rendered; opacity+transform only, never layout-affecting props */}
+        <div className="px-4 py-5 space-y-3 min-h-[420px]">
+          {DEMO.map((msg, i) => {
             const isUser = msg.role === 'user';
             return (
-              <div key={i} className={`flex ${isUser ? 'justify-end' : 'justify-start'} animate-fade-in-up`}>
+              <div
+                key={i}
+                className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
+                style={{
+                  opacity: msgVisible[i] ? 1 : 0,
+                  transform: msgVisible[i] ? 'translateY(0)' : 'translateY(10px)',
+                  transition: 'opacity 0.38s cubic-bezier(0.16, 1, 0.3, 1), transform 0.38s cubic-bezier(0.16, 1, 0.3, 1)',
+                }}
+              >
                 {!isUser && (
                   <div className="w-6 h-6 rounded-full bg-[#c9a84c]/20 border border-[#c9a84c]/30 flex items-center justify-center mr-2 mt-0.5 flex-shrink-0">
                     <PlaneIcon className="w-3 h-3 text-[#c9a84c]" />
@@ -557,19 +562,26 @@ function DemoChat({ onGetStarted }) {
             );
           })}
 
-          {/* Typing indicator */}
-          {showTyping && (
-            <div className="flex justify-start animate-fade-in-up">
-              <div className="w-6 h-6 rounded-full bg-[#c9a84c]/20 border border-[#c9a84c]/30 flex items-center justify-center mr-2 mt-0.5 flex-shrink-0">
-                <PlaneIcon className="w-3 h-3 text-[#c9a84c]" />
-              </div>
-              <div className="bg-[#111d35] rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style={{ animationDelay: '300ms' }} />
-              </div>
+          {/* Typing indicator — pre-rendered, opacity+transform only */}
+          <div
+            aria-hidden={!showTyping}
+            className="flex justify-start"
+            style={{
+              opacity: showTyping ? 1 : 0,
+              transform: showTyping ? 'translateY(0)' : 'translateY(10px)',
+              transition: 'opacity 0.3s ease, transform 0.3s ease',
+              pointerEvents: 'none',
+            }}
+          >
+            <div className="w-6 h-6 rounded-full bg-[#c9a84c]/20 border border-[#c9a84c]/30 flex items-center justify-center mr-2 mt-0.5 flex-shrink-0">
+              <PlaneIcon className="w-3 h-3 text-[#c9a84c]" />
             </div>
-          )}
+            <div className="bg-[#111d35] rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1255,6 +1267,202 @@ async function getIntelligenceData(client, history, assistantText, profileCtx) {
 
 // ── Trip Intelligence Panel ─────────────────────────────────────────────────
 
+function buildTripPlanText(intelligence) {
+  const { overview, strategy } = intelligence ?? {};
+  const lines = [];
+
+  lines.push('FLIO TRIP PLAN');
+  lines.push('──────────────');
+  if (overview) {
+    const header = [overview.destination, overview.dates, overview.cabinClass].filter(Boolean).join(' · ');
+    if (header) lines.push(header);
+  }
+
+  if (overview?.pointsUsed?.length) {
+    lines.push('');
+    lines.push('POINTS STRATEGY');
+    overview.pointsUsed.forEach((p) => {
+      lines.push(`${p.program}: ${p.amount?.toLocaleString() ?? '—'} points → $${p.dollarValue?.toLocaleString() ?? '—'}`);
+    });
+    if (strategy?.pointsToSave?.amount != null) {
+      lines.push(`Points remaining: ${strategy.pointsToSave.amount.toLocaleString()}`);
+    }
+  }
+
+  if (strategy?.transferPartners?.length) {
+    lines.push('');
+    lines.push('BOOKING SEQUENCE');
+    strategy.transferPartners.forEach((step, i) => lines.push(`${i + 1}. ${step}`));
+  }
+
+  if (strategy?.perks?.length) {
+    lines.push('');
+    lines.push('PERKS THAT APPLY');
+    strategy.perks.forEach((p) => lines.push(`✓ ${p}`));
+  }
+
+  if (strategy?.warnings?.length) {
+    lines.push('');
+    lines.push('WATCH OUT FOR');
+    strategy.warnings.forEach((w) => lines.push(`! ${w}`));
+  }
+
+  lines.push('');
+  lines.push('Generated by Flio · flio-six.vercel.app');
+  return lines.join('\n');
+}
+
+async function loadJsPDF() {
+  if (window.jspdf?.jsPDF) return window.jspdf.jsPDF;
+  await new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+  return window.jspdf.jsPDF;
+}
+
+async function downloadTripPDF(intelligence) {
+  const JsPDF = await loadJsPDF();
+  const { overview, strategy } = intelligence ?? {};
+  const doc = new JsPDF({ unit: 'pt', format: 'letter' });
+
+  const gold = [201, 168, 76];
+  const dark = [15, 21, 38];
+  const white = [255, 255, 255];
+  const dim = [140, 155, 180];
+
+  const W = doc.internal.pageSize.getWidth();
+  let y = 0;
+
+  // Dark background
+  doc.setFillColor(...dark);
+  doc.rect(0, 0, W, doc.internal.pageSize.getHeight(), 'F');
+
+  // Gold header bar
+  doc.setFillColor(...gold);
+  doc.rect(0, 0, W, 54, 'F');
+
+  // FLIO wordmark
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(22);
+  doc.setTextColor(...dark);
+  doc.text('FLIO', 40, 35);
+
+  // Tagline
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.text('AI Travel Concierge', 92, 35);
+
+  y = 86;
+
+  // Trip header
+  if (overview?.destination) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.setTextColor(...white);
+    doc.text(overview.destination, 40, y);
+    y += 22;
+
+    const sub = [overview.dates, overview.cabinClass].filter(Boolean).join('  ·  ');
+    if (sub) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(...dim);
+      doc.text(sub, 40, y);
+      y += 18;
+    }
+  }
+
+  // Gold rule
+  y += 10;
+  doc.setDrawColor(...gold);
+  doc.setLineWidth(0.5);
+  doc.line(40, y, W - 40, y);
+  y += 20;
+
+  const sectionHeader = (label) => {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(...gold);
+    doc.text(label, 40, y);
+    y += 16;
+  };
+
+  const bodyLine = (text, indent = 40) => {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(...white);
+    const lines = doc.splitTextToSize(text, W - indent - 40);
+    doc.text(lines, indent, y);
+    y += lines.length * 14 + 2;
+  };
+
+  // Points Strategy
+  if (overview?.pointsUsed?.length) {
+    sectionHeader('POINTS STRATEGY');
+    overview.pointsUsed.forEach((p) => {
+      bodyLine(`${p.program}: ${p.amount?.toLocaleString() ?? '—'} pts → $${p.dollarValue?.toLocaleString() ?? '—'}`);
+    });
+    if (strategy?.pointsToSave?.amount != null) {
+      doc.setTextColor(...dim);
+      doc.setFontSize(9);
+      doc.text(`Points remaining: ${strategy.pointsToSave.amount.toLocaleString()}`, 40, y);
+      y += 14;
+      doc.setTextColor(...white);
+    }
+    y += 8;
+  }
+
+  // Booking Sequence
+  if (strategy?.transferPartners?.length) {
+    sectionHeader('BOOKING SEQUENCE');
+    strategy.transferPartners.forEach((step, i) => bodyLine(`${i + 1}.  ${step}`, 48));
+    y += 8;
+  }
+
+  // Perks
+  if (strategy?.perks?.length) {
+    sectionHeader('PERKS THAT APPLY');
+    strategy.perks.forEach((p) => {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(...gold);
+      doc.text('✓', 40, y);
+      doc.setTextColor(...white);
+      const lines = doc.splitTextToSize(p, W - 100);
+      doc.text(lines, 58, y);
+      y += lines.length * 14 + 2;
+    });
+    y += 8;
+  }
+
+  // Warnings
+  if (strategy?.warnings?.length) {
+    sectionHeader('WATCH OUT FOR');
+    strategy.warnings.forEach((w) => bodyLine(`! ${w}`, 48));
+    y += 8;
+  }
+
+  // Footer
+  const footerY = doc.internal.pageSize.getHeight() - 30;
+  doc.setDrawColor(...gold);
+  doc.setLineWidth(0.3);
+  doc.line(40, footerY - 10, W - 40, footerY - 10);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(...dim);
+  doc.text('Generated by Flio  ·  flio-six.vercel.app', 40, footerY);
+
+  // Filename
+  const dest = (overview?.destination ?? 'trip').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const date = (overview?.dates ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const filename = `flio-${dest}${date ? '-' + date : ''}.pdf`;
+  doc.save(filename);
+}
+
 function OverviewTab({ overview }) {
   if (!overview) {
     return (
@@ -1470,6 +1678,26 @@ function TripIntelligencePanel({ intelligence, loading, activeTab, onTabChange, 
     { id: 'strategy', label: 'Strategy' },
   ];
   const isEmpty = !intelligence;
+  const [copied, setCopied] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
+
+  const handleCopy = () => {
+    const text = buildTripPlanText(intelligence);
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  const handleDownloadPDF = async () => {
+    setPdfLoading(true);
+    try {
+      await downloadTripPDF(intelligence);
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Tab bar */}
@@ -1479,7 +1707,7 @@ function TripIntelligencePanel({ intelligence, loading, activeTab, onTabChange, 
             <button
               key={tab.id}
               onClick={() => { onTabChange(tab.id); onClearIndicator(tab.id); }}
-              className={`tab-btn relative py-3 mr-5 text-sm border-b-2 border-transparent ${
+              className={`tab-btn inline-flex items-center gap-1.5 py-3 mr-5 text-sm border-b-2 border-transparent ${
                 activeTab === tab.id
                   ? 'tab-active text-white'
                   : 'text-white/35 hover:text-white/65'
@@ -1487,7 +1715,7 @@ function TripIntelligencePanel({ intelligence, loading, activeTab, onTabChange, 
             >
               {tab.label}
               {newIndicators?.[tab.id] && activeTab !== tab.id && (
-                <span className="absolute -top-0.5 -right-2 w-1.5 h-1.5 rounded-full bg-[#c9a84c] animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c] animate-pulse flex-shrink-0 self-start mt-1" />
               )}
             </button>
           ))}
@@ -1525,6 +1753,25 @@ function TripIntelligencePanel({ intelligence, loading, activeTab, onTabChange, 
           </>
         )}
       </div>
+
+      {/* Export buttons — only when panel has data */}
+      {!isEmpty && (
+        <div className="flex-shrink-0 px-4 py-3 border-t border-white/5 flex gap-2">
+          <button
+            onClick={handleCopy}
+            className="flex-1 flex items-center justify-center gap-1.5 text-xs text-white/50 border border-[#c9a84c]/18 hover:border-[#c9a84c]/40 hover:text-white/75 rounded-lg px-3 py-2 bg-[#c9a84c]/[0.04] hover:bg-[#c9a84c]/[0.08] transition-all duration-200"
+          >
+            {copied ? '✓ Copied!' : '📋 Copy Trip Plan'}
+          </button>
+          <button
+            onClick={handleDownloadPDF}
+            disabled={pdfLoading}
+            className="flex-1 flex items-center justify-center gap-1.5 text-xs text-white/50 border border-[#c9a84c]/18 hover:border-[#c9a84c]/40 hover:text-white/75 rounded-lg px-3 py-2 bg-[#c9a84c]/[0.04] hover:bg-[#c9a84c]/[0.08] transition-all duration-200 disabled:opacity-40"
+          >
+            {pdfLoading ? '⏳ Generating…' : '⬇ Download PDF'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -1570,7 +1817,81 @@ function TripHistoryItem({ trip, isActive, onLoad, onDelete }) {
 
 // ── Chat Interface ─────────────────────────────────────────────────────────
 
-const GREETING = "Hi! I'm Flio, your AI travel concierge. Where are you thinking of going next?";
+function buildGreeting(profile) {
+  const programs = profile?.loyaltyPrograms ?? [];
+  const cards = profile?.creditCards ?? [];
+  const hasData = programs.length > 0 || cards.length > 0;
+
+  if (!hasData) {
+    return "Welcome to Flio. Set up your profile to get personalized travel advice.";
+  }
+
+  // Total portfolio value
+  let totalValue = 0;
+  programs.forEach((p) => {
+    const cpp = POINTS_CPP[p.id];
+    if (cpp && p.balance > 0) totalValue += Math.round((p.balance * cpp) / 100);
+  });
+  cards.forEach((c) => {
+    const cpp = CARDS_CPP[c.id];
+    if (cpp && c.balance > 0) totalValue += Math.round((c.balance * cpp) / 100);
+  });
+
+  // Unused credits (read from localStorage so this stays in sync)
+  let usedCredits = {};
+  try { usedCredits = JSON.parse(localStorage.getItem('flio-credits')) || {}; } catch {}
+  const unusedCredits = [];
+  cards.forEach((card) => {
+    (CARD_CREDITS_DATA[card.id] ?? []).forEach((credit) => {
+      if (!usedCredits[credit.id]) unusedCredits.push({ label: credit.label, value: credit.value });
+    });
+  });
+  const topCredits = unusedCredits.sort((a, b) => b.value - a.value).slice(0, 2);
+
+  // Build message
+  let msg = 'Welcome back';
+  if (totalValue > 0) msg += `. Your travel wallet is worth $${totalValue.toLocaleString()}`;
+  if (topCredits.length > 0) {
+    const parts = topCredits.map((c) => `$${c.value} ${c.label.toLowerCase()}`);
+    msg += ` and you have ${parts.join(' and ')} available`;
+  }
+  msg += '. Where are you headed?';
+  return msg;
+}
+
+function buildChips(profile) {
+  const programs = profile?.loyaltyPrograms ?? [];
+  const cards = profile?.creditCards ?? [];
+  if (!programs.length && !cards.length) {
+    return [
+      "Best use of my points for Europe",
+      "Which card should I use for flights?",
+      "Plan a business class trip under 80k miles",
+    ];
+  }
+
+  const chips = [];
+  const hyatt = programs.find((p) => p.id === 'hyatt');
+  if (hyatt?.balance > 0) chips.push(`Best use of my ${hyatt.balance.toLocaleString()} Hyatt points`);
+
+  const chaseCard = cards.find((c) => c.id === 'csr' || c.id === 'csp');
+  if (chaseCard?.balance > 0) chips.push(`Best use of my ${chaseCard.balance.toLocaleString()} Chase UR points`);
+
+  const csr = cards.find((c) => c.id === 'csr');
+  const csp = cards.find((c) => c.id === 'csp');
+  if (csr) chips.push("Is my Chase Sapphire Reserve worth keeping?");
+  else if (csp) chips.push("Is my Chase Sapphire Preferred worth upgrading?");
+
+  const amex = cards.find((c) => c.id === 'amex-plat' || c.id === 'amex-gold');
+  if (amex) chips.push("What Amex credits should I use this month?");
+
+  if (profile?.homeAirport?.code) chips.push(`Plan a trip from ${profile.homeAirport.code} under 100k miles`);
+
+  chips.push("Which card should I use for flights?");
+  chips.push("Plan a business class trip under 80k miles");
+
+  return [...new Set(chips)].slice(0, 3);
+}
 
 function TypingIndicator() {
   return (
@@ -1619,7 +1940,7 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
   const [currentTripId, setCurrentTripId] = useState(null);
   const currentTripIdRef = useRef(null);
   const [messages, setMessages] = useState([
-    { id: 1, role: 'assistant', text: GREETING, time: now() },
+    { id: 1, role: 'assistant', text: buildGreeting(profile), time: now() },
   ]);
   const messagesRef = useRef(messages);
   useEffect(() => { messagesRef.current = messages; }, [messages]);
@@ -1649,7 +1970,7 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
   }, [messages, isStreaming]);
 
   const startNewTrip = () => {
-    setMessages([{ id: Date.now(), role: 'assistant', text: GREETING, time: now() }]);
+    setMessages([{ id: Date.now(), role: 'assistant', text: buildGreeting(profile), time: now() }]);
     currentTripIdRef.current = null;
     setCurrentTripId(null);
     setSidebarOpen(false);
@@ -1706,10 +2027,10 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
     });
   };
 
-  const send = async () => {
-    if (!input.trim() || isStreaming) return;
+  const send = async (overrideText) => {
+    const userText = (overrideText ?? input).trim();
+    if (!userText || isStreaming) return;
 
-    const userText = input.trim();
     const userTime = now();
     setInput('');
 
@@ -1918,15 +2239,33 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
           {/* Messages */}
           <div className="flex-1 overflow-y-auto px-4 py-6">
             {messages.map((m) => (
-              <div key={m.id}>
-                <ChatBubble message={m} />
-              </div>
+              // Don't render empty assistant messages — TypingIndicator covers that state
+              m.role === 'assistant' && !m.text ? null : (
+                <div key={m.id}>
+                  <ChatBubble message={m} />
+                </div>
+              )
             ))}
             {isStreaming && messages[messages.length - 1]?.text === '' && (
               <TypingIndicator />
             )}
             <div ref={bottomRef} />
           </div>
+
+          {/* Prompt chips — only show on fresh conversation */}
+          {messages.length === 1 && !isStreaming && (
+            <div className="px-4 pb-2 flex gap-2 flex-wrap flex-shrink-0">
+              {buildChips(profile).map((chip) => (
+                <button
+                  key={chip}
+                  onClick={() => send(chip)}
+                  className="text-xs text-white/55 border border-[#c9a84c]/20 hover:border-[#c9a84c]/45 hover:text-white/80 rounded-full px-3 py-1.5 bg-[#c9a84c]/4 hover:bg-[#c9a84c]/8 transition-all duration-200"
+                >
+                  {chip}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Input */}
           <div className="px-4 py-4 border-t border-white/5 bg-[#0a0f1e] flex-shrink-0">
