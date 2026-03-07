@@ -576,6 +576,42 @@ function DemoChat({ onGetStarted }) {
   );
 }
 
+// ── Fade-in on scroll ──────────────────────────────────────────────────────
+
+function FadeInSection({ children }) {
+  const [visible, setVisible] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          observer.disconnect(); // stays visible once triggered
+        }
+      },
+      { threshold: 0.08 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      style={{
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'translateY(0)' : 'translateY(28px)',
+        transition: 'opacity 0.65s ease, transform 0.65s ease',
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
 // ── Landing Page ───────────────────────────────────────────────────────────
 
 function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, onEditProfile }) {
@@ -682,13 +718,16 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
         </div>
       </div>
 
-      {/* Demo chat */}
-      <div className="pt-20 pb-16">
-        <DemoChat onGetStarted={onGetStarted} />
-      </div>
+      <FadeInSection>
+        {/* Demo chat */}
+        <div className="pt-20 pb-16">
+          <DemoChat onGetStarted={onGetStarted} />
+        </div>
+      </FadeInSection>
 
-      {/* How It Works */}
-      <div className="px-6 pb-32 max-w-5xl mx-auto w-full">
+      <FadeInSection>
+        {/* How It Works */}
+        <div className="px-6 pb-32 max-w-5xl mx-auto w-full">
         <div className="text-center mb-14">
           <p className="text-[10px] text-[#c9a84c] uppercase tracking-widest mb-3">How it works</p>
           <h2 className="text-3xl md:text-4xl font-light text-white">Smart travel advice in seconds.</h2>
@@ -717,9 +756,11 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
           ))}
         </div>
       </div>
+      </FadeInSection>
 
-      {/* Points Portfolio Preview */}
-      <div className="px-6 pb-32 max-w-2xl mx-auto w-full">
+      <FadeInSection>
+        {/* Points Portfolio Preview */}
+        <div className="px-6 pb-32 max-w-2xl mx-auto w-full">
         {/* Section header */}
         <div className="text-center mb-10">
           <p className="text-[10px] text-[#c9a84c] uppercase tracking-widest mb-3">Your Travel Wallet</p>
@@ -827,11 +868,13 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
           </div>
         </div>
       </div>
+      </FadeInSection>
 
-      {/* What Flio Knows */}
-      <div className="px-6 pb-32 max-w-4xl mx-auto w-full">
-        {/* Section header */}
-        <div className="text-center mb-4">
+      <FadeInSection>
+        {/* What Flio Knows */}
+        <div className="px-6 pb-32 max-w-4xl mx-auto w-full">
+          {/* Section header */}
+          <div className="text-center mb-4">
           <p className="text-[10px] text-[#c9a84c] uppercase tracking-widest mb-3">Works With</p>
           <h2 className="text-3xl md:text-4xl font-light text-white mb-3">Built around your actual wallet.</h2>
           <p className="text-white/40 text-sm max-w-lg mx-auto leading-relaxed">
@@ -890,9 +933,11 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
           </div>
         </div>
       </div>
+      </FadeInSection>
 
-      {/* The Problem */}
-      <div className="px-6 pb-32 max-w-4xl mx-auto w-full">
+      <FadeInSection>
+        {/* The Problem */}
+        <div className="px-6 pb-16 max-w-4xl mx-auto w-full">
         {/* Section header */}
         <div className="text-center mb-12">
           <p className="text-[10px] text-[#c9a84c] uppercase tracking-widest mb-3">The Difference</p>
@@ -952,9 +997,11 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
           </div>
         </div>
       </div>
+      </FadeInSection>
 
-      {/* CTA Banner */}
-      <div className="relative w-full px-6 py-32 flex flex-col items-center text-center overflow-hidden">
+      <FadeInSection>
+        {/* CTA Banner */}
+        <div className="relative w-full px-6 py-32 flex flex-col items-center text-center overflow-hidden">
         {/* Radial gold glow */}
         <div
           className="absolute inset-0 pointer-events-none"
@@ -976,17 +1023,20 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
         <p className="relative text-white/20 text-xs tracking-wide">
           No account required. Your data stays on your device.
         </p>
-      </div>
-
-      {/* Page footer */}
-      <footer className="border-t border-white/5 px-6 py-10 flex flex-col items-center gap-2 text-center">
-        <div className="flex items-center gap-2 mb-1">
-          <PlaneIcon className="w-4 h-4 text-[#c9a84c]" />
-          <span className="text-white font-semibold tracking-widest text-sm uppercase">Flio</span>
         </div>
-        <p className="text-white/30 text-xs">Your personal AI travel concierge</p>
-        <p className="text-white/18 text-xs">Built for travelers who want more from every trip.</p>
-      </footer>
+      </FadeInSection>
+
+      <FadeInSection>
+        {/* Page footer */}
+        <footer className="border-t border-white/5 px-6 py-10 flex flex-col items-center gap-2 text-center">
+          <div className="flex items-center gap-2 mb-1">
+            <PlaneIcon className="w-4 h-4 text-[#c9a84c]" />
+            <span className="text-white font-semibold tracking-widest text-sm uppercase">Flio</span>
+          </div>
+          <p className="text-white/30 text-xs">Your personal AI travel concierge</p>
+          <p className="text-white/40 text-xs">Built for travelers who want more from every trip.</p>
+        </footer>
+      </FadeInSection>
 
     </div>
   );
