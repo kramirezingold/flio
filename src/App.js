@@ -92,6 +92,15 @@ function XIcon({ className }) {
   );
 }
 
+function PanelRightIcon({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+      <line x1="15" y1="3" x2="15" y2="21" />
+    </svg>
+  );
+}
+
 // ── Onboarding Data ────────────────────────────────────────────────────────
 
 const AIRPORTS = [
@@ -1207,31 +1216,30 @@ function ProfileSetup({ onBack, onComplete, initialProfile }) {
   );
 }
 
-// ── Trip Summary Card ──────────────────────────────────────────────────────
+// ── Trip Intelligence ───────────────────────────────────────────────────────
 
-async function getSummaryData(client, history, assistantText) {
+async function getIntelligenceData(client, history, assistantText, profileCtx) {
   try {
     const response = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 600,
+      max_tokens: 3000,
       messages: [
         ...history,
         { role: 'assistant', content: assistantText },
         {
           role: 'user',
-          content:
-            'Based on this travel conversation, return ONLY a raw JSON object — no markdown, no code blocks, no explanation. Use exactly these fields: bestCard (string), pointsToRedeem (number), pointValue (number), pointsRemaining (number), cashSavings (number), bookingSteps (array of strings). If the conversation does not contain a specific booking recommendation with enough numerical detail to populate these fields, return exactly: null',
+          content: `Traveler profile: ${profileCtx}. Based on this travel planning conversation, return ONLY a raw JSON object — no markdown, no code blocks. Use exactly this structure (set overview or strategy to null if insufficient travel details yet):
+
+{"overview":{"destination":"City, Country","dates":"Month Year","cabinClass":"Business","totalSavings":0,"pointsUsed":[{"program":"Program Name","amount":0,"dollarValue":0}],"bestCard":{"name":"Card Name","reason":"Why this card"},"recommendation":"One-line booking recommendation"},"strategy":{"transferPartners":["..."],"pointsToUse":{"amount":0,"reasoning":"..."},"pointsToSave":{"amount":0,"reasoning":"..."},"perks":["..."],"warnings":["..."]},"checklist":{"sections":[{"title":"2 Weeks Before","items":[{"id":"w2-1","text":"...","checked":false}]},{"title":"1 Week Before","items":[{"id":"w1-1","text":"...","checked":false}]},{"title":"Day Before","items":[{"id":"db-1","text":"...","checked":false}]},{"title":"At The Airport","items":[{"id":"ap-1","text":"...","checked":false}]}]}}Checklist requirements: reference the traveler's actual card and program names throughout; include specific transfer partner actions, lounge names based on home airport and cards held, credit enrollment reminders, and status perks; 3-5 specific actionable items per section. Always return a checklist if any travel planning has occurred in the conversation.`,
         },
       ],
     });
-    const raw = response.content[0].text.trim();
-    // Strip markdown code fences if model wraps response
-    const text = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-    console.log('[Flio summary raw]', text);
-    if (text === 'null') return null;
-    return JSON.parse(text);
+    const raw = response.content[0].text.trim()
+      .replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+    if (raw === 'null') return null;
+    return JSON.parse(raw);
   } catch (err) {
-    console.error('[Flio summary error]', err);
+    console.error('[Flio intelligence error]', err);
     return null;
   }
 }
@@ -1382,6 +1390,279 @@ function ChecklistCard({ checklist, onToggleItem }) {
   );
 }
 
+// ── Trip Intelligence Panel ─────────────────────────────────────────────────
+
+function OverviewTab({ overview }) {
+  if (!overview) {
+    return (
+      <div className="flex flex-col items-center justify-center h-32 text-center">
+        <p className="text-white/25 text-sm">Trip details will appear here</p>
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-3">
+      <div className="bg-[#0a1328] border border-white/8 rounded-xl p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1">Destination</p>
+            <p className="text-white text-base font-light leading-snug">{overview.destination}</p>
+            {overview.dates && <p className="text-white/40 text-xs mt-1">{overview.dates}</p>}
+          </div>
+          {overview.cabinClass && (
+            <span className="flex-shrink-0 bg-[#c9a84c]/10 border border-[#c9a84c]/20 text-[#c9a84c] text-[10px] px-2.5 py-1 rounded-full uppercase tracking-wide">
+              {overview.cabinClass}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {overview.totalSavings > 0 && (
+        <div className="bg-[#c9a84c]/[0.06] border border-[#c9a84c]/20 rounded-xl p-4">
+          <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1">Est. Total Savings</p>
+          <p className="text-[#c9a84c] text-2xl font-semibold leading-none">~${overview.totalSavings.toLocaleString()}</p>
+          <p className="text-white/30 text-xs mt-1">vs. paying cash</p>
+        </div>
+      )}
+
+      {overview.pointsUsed?.length > 0 && (
+        <div className="bg-[#0a1328] border border-white/8 rounded-xl p-4">
+          <p className="text-[10px] text-white/30 uppercase tracking-widest mb-3">Points Being Used</p>
+          <div className="space-y-2.5">
+            {overview.pointsUsed.map((p, i) => (
+              <div key={i} className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-white/80 text-sm truncate">{p.program}</p>
+                  <p className="text-white/30 text-xs">{p.amount?.toLocaleString()} pts</p>
+                </div>
+                <p className="text-[#c9a84c] text-sm font-medium flex-shrink-0">~${p.dollarValue?.toLocaleString()}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {overview.bestCard && (
+        <div className="bg-[#0a1328] border border-white/8 rounded-xl p-4">
+          <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Best Card for Taxes/Fees</p>
+          <p className="text-white text-sm font-medium">{overview.bestCard.name}</p>
+          {overview.bestCard.reason && (
+            <p className="text-white/40 text-xs mt-1 leading-relaxed">{overview.bestCard.reason}</p>
+          )}
+        </div>
+      )}
+
+      {overview.recommendation && (
+        <div className="bg-[#0a1328] border border-[#c9a84c]/20 rounded-xl p-4">
+          <div className="flex items-center gap-1.5 mb-2">
+            <span className="text-[#c9a84c] text-xs leading-none">✦</span>
+            <p className="text-[10px] text-[#c9a84c] uppercase tracking-widest font-semibold">Recommendation</p>
+          </div>
+          <p className="text-white/75 text-sm leading-relaxed">{overview.recommendation}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ChecklistTab({ checklist, onToggleItem }) {
+  if (!checklist) {
+    return (
+      <div className="flex flex-col items-center justify-center h-32 text-center">
+        <p className="text-white/25 text-sm">Checklist will appear after planning</p>
+      </div>
+    );
+  }
+  const allItems = checklist.sections?.flatMap((s) => s.items) ?? [];
+  const completed = allItems.filter((i) => i.checked).length;
+  const total = allItems.length;
+  return (
+    <div>
+      <div className="flex items-center gap-3 mb-4">
+        <div className="flex-1 h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+          <div
+            className="h-full bg-[#c9a84c] rounded-full transition-all duration-500"
+            style={{ width: total > 0 ? `${(completed / total) * 100}%` : '0%' }}
+          />
+        </div>
+        <span className="text-xs text-white/35 flex-shrink-0 min-w-[60px] text-right">
+          {completed === total && total > 0 ? 'All done ✓' : `${completed} of ${total}`}
+        </span>
+      </div>
+      <div className="space-y-3">
+        {checklist.sections?.map((section) => (
+          <div key={section.title} className="bg-[#0a1328] border border-white/8 rounded-xl p-4">
+            <p className="text-[9px] text-white/30 uppercase tracking-widest mb-3">{section.title}</p>
+            <div className="space-y-2.5">
+              {section.items.map((item) => (
+                <label key={item.id} className="flex items-start gap-2.5 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={item.checked}
+                    onChange={() => onToggleItem(section.title, item.id)}
+                    className="mt-0.5 flex-shrink-0 w-3.5 h-3.5 accent-[#c9a84c] cursor-pointer"
+                  />
+                  <span className={`text-sm leading-relaxed transition-all duration-200 select-none ${
+                    item.checked ? 'line-through text-white/20' : 'text-white/70 group-hover:text-white/90'
+                  }`}>
+                    {item.text}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StrategyTab({ strategy }) {
+  if (!strategy) {
+    return (
+      <div className="flex flex-col items-center justify-center h-32 text-center">
+        <p className="text-white/25 text-sm">Strategy will appear after planning</p>
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-3">
+      {strategy.transferPartners?.length > 0 && (
+        <div className="bg-[#0a1328] border border-white/8 rounded-xl p-4">
+          <p className="text-[10px] text-white/30 uppercase tracking-widest mb-3">Transfer Partners</p>
+          <div className="space-y-1.5">
+            {strategy.transferPartners.map((p, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <span className="w-1 h-1 rounded-full bg-[#c9a84c]/60 flex-shrink-0 mt-1.5" />
+                <p className="text-white/70 text-sm leading-relaxed">{p}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {(strategy.pointsToUse || strategy.pointsToSave) && (
+        <div className="bg-[#0a1328] border border-white/8 rounded-xl p-4">
+          <p className="text-[10px] text-white/30 uppercase tracking-widest mb-3">Points Allocation</p>
+          {strategy.pointsToUse && (
+            <div className="mb-3">
+              <div className="flex items-baseline gap-1.5 mb-1">
+                <span className="text-[10px] text-[#c9a84c] uppercase tracking-wide font-medium">Use</span>
+                <span className="text-white text-sm font-medium">
+                  {strategy.pointsToUse.amount != null ? strategy.pointsToUse.amount.toLocaleString() + ' pts' : '—'}
+                </span>
+              </div>
+              <p className="text-white/40 text-xs leading-relaxed">{strategy.pointsToUse.reasoning}</p>
+            </div>
+          )}
+          {strategy.pointsToSave && (
+            <div className={strategy.pointsToUse ? 'border-t border-white/5 pt-3' : ''}>
+              <div className="flex items-baseline gap-1.5 mb-1">
+                <span className="text-[10px] text-white/40 uppercase tracking-wide font-medium">Keep</span>
+                <span className="text-white/70 text-sm font-medium">
+                  {strategy.pointsToSave.amount != null ? strategy.pointsToSave.amount.toLocaleString() + ' pts' : '—'}
+                </span>
+              </div>
+              <p className="text-white/40 text-xs leading-relaxed">{strategy.pointsToSave.reasoning}</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {strategy.perks?.length > 0 && (
+        <div className="bg-[#0a1328] border border-white/8 rounded-xl p-4">
+          <p className="text-[10px] text-white/30 uppercase tracking-widest mb-3">Applicable Perks</p>
+          <div className="space-y-1.5">
+            {strategy.perks.map((p, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <span className="text-[#c9a84c]/60 text-xs flex-shrink-0 mt-0.5">✓</span>
+                <p className="text-white/70 text-sm leading-relaxed">{p}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {strategy.warnings?.length > 0 && (
+        <div className="bg-red-950/15 border border-red-900/20 rounded-xl p-4">
+          <p className="text-[10px] text-red-400/60 uppercase tracking-widest mb-3">What NOT to Do</p>
+          <div className="space-y-1.5">
+            {strategy.warnings.map((w, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <span className="text-red-700/60 text-xs flex-shrink-0 mt-0.5">✕</span>
+                <p className="text-white/55 text-sm leading-relaxed">{w}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TripIntelligencePanel({ intelligence, loading, activeTab, onTabChange, newIndicators, onClearIndicator, onToggleChecklistItem }) {
+  const tabs = [
+    { id: 'overview', label: 'Overview' },
+    { id: 'checklist', label: 'Checklist' },
+    { id: 'strategy', label: 'Strategy' },
+  ];
+  const isEmpty = !intelligence;
+  return (
+    <div className="flex flex-col h-full">
+      {/* Tab bar */}
+      <div className="flex items-center border-b border-white/8 px-4 flex-shrink-0">
+        <div className="flex flex-1">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => { onTabChange(tab.id); onClearIndicator(tab.id); }}
+              className={`relative py-3 mr-5 text-sm border-b-2 transition-all ${
+                activeTab === tab.id
+                  ? 'border-[#c9a84c] text-white'
+                  : 'border-transparent text-white/35 hover:text-white/60'
+              }`}
+            >
+              {tab.label}
+              {newIndicators?.[tab.id] && activeTab !== tab.id && (
+                <span className="absolute -top-0.5 -right-2 w-1.5 h-1.5 rounded-full bg-[#c9a84c]" />
+              )}
+            </button>
+          ))}
+        </div>
+        {loading && (
+          <div className="flex items-center gap-1 py-3">
+            <span className="w-1 h-1 rounded-full bg-[#c9a84c]/60 animate-bounce" style={{ animationDelay: '0ms' }} />
+            <span className="w-1 h-1 rounded-full bg-[#c9a84c]/60 animate-bounce" style={{ animationDelay: '150ms' }} />
+            <span className="w-1 h-1 rounded-full bg-[#c9a84c]/60 animate-bounce" style={{ animationDelay: '300ms' }} />
+          </div>
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto px-4 py-4">
+        {isEmpty && !loading ? (
+          <div className="flex flex-col items-center justify-center h-full text-center px-6 min-h-[200px]">
+            <div className="w-10 h-10 rounded-full bg-[#c9a84c]/8 border border-[#c9a84c]/15 flex items-center justify-center mb-4">
+              <PlaneIcon className="w-5 h-5 text-[#c9a84c]/30" />
+            </div>
+            <p className="text-white/20 text-sm leading-relaxed max-w-[180px]">
+              Start planning a trip to see your recommendations
+            </p>
+          </div>
+        ) : (
+          <>
+            {activeTab === 'overview' && <OverviewTab overview={intelligence?.overview} />}
+            {activeTab === 'checklist' && (
+              <ChecklistTab checklist={intelligence?.checklist} onToggleItem={onToggleChecklistItem} />
+            )}
+            {activeTab === 'strategy' && <StrategyTab strategy={intelligence?.strategy} />}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Trip History ────────────────────────────────────────────────────────────
 
 const TRIPS_KEY = 'flio-trips';
@@ -1474,9 +1755,22 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
   const [messages, setMessages] = useState([
     { id: 1, role: 'assistant', text: GREETING, time: now() },
   ]);
+  const messagesRef = useRef(messages);
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
+
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const bottomRef = useRef(null);
+
+  // Trip Intelligence panel state
+  const [intelligence, setIntelligence] = useState(null);
+  const intelligenceRef = useRef(null);
+  useEffect(() => { intelligenceRef.current = intelligence; }, [intelligence]);
+  const [intelligenceLoading, setIntelligenceLoading] = useState(false);
+  const [activeIntelTab, setActiveIntelTab] = useState('overview');
+  const [newTabIndicators, setNewTabIndicators] = useState({ overview: false, checklist: false, strategy: false });
+  const [mobileIntelOpen, setMobileIntelOpen] = useState(false);
+
   const clientRef = useRef(
     new Anthropic({
       apiKey: process.env.REACT_APP_ANTHROPIC_API_KEY,
@@ -1493,6 +1787,8 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
     currentTripIdRef.current = null;
     setCurrentTripId(null);
     setSidebarOpen(false);
+    setIntelligence(null);
+    setNewTabIndicators({ overview: false, checklist: false, strategy: false });
   };
 
   const loadTrip = (trip) => {
@@ -1500,6 +1796,8 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
     currentTripIdRef.current = trip.id;
     setCurrentTripId(trip.id);
     setSidebarOpen(false);
+    setIntelligence(trip.intelligence ?? null);
+    setNewTabIndicators({ overview: false, checklist: false, strategy: false });
   };
 
   const handleDeleteTrip = (id) => {
@@ -1510,79 +1808,34 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
     onDeleteTrip(id);
   };
 
-  // ID of the last completed assistant message (not the greeting) — where the checklist button shows
-  const lastAssistantMsgId = messages
-    .filter((m) => m.role === 'assistant' && m.text && m.text !== GREETING)
-    .at(-1)?.id ?? null;
-
-  const saveTripFromMessages = (updated) => {
+  const saveTripSnapshot = (msgs, intel) => {
     if (!currentTripIdRef.current) return;
-    const title = (updated.find((m) => m.role === 'user')?.text ?? 'Trip').slice(0, 60);
-    onSaveTrip({ id: currentTripIdRef.current, title, date: new Date().toISOString(), messages: updated });
+    const title = (msgs.find((m) => m.role === 'user')?.text ?? 'Trip').slice(0, 60);
+    onSaveTrip({ id: currentTripIdRef.current, title, date: new Date().toISOString(), messages: msgs, intelligence: intel });
   };
 
-  const generateChecklist = async (messageId) => {
-    setMessages((prev) => prev.map((m) => m.id === messageId ? { ...m, checklist: { generating: true } } : m));
-
-    const history = messages
-      .filter((m) => m.text && m.text !== GREETING)
-      .map((m) => ({ role: m.role, content: m.text }));
-
-    const profileCtx = [
-      profile.homeAirport ? `Home airport: ${profile.homeAirport.city} (${profile.homeAirport.code})` : '',
-      profile.creditCards?.length ? `Credit cards: ${profile.creditCards.map((c) => c.name).join(', ')}` : '',
-      profile.loyaltyPrograms?.length ? `Loyalty programs: ${profile.loyaltyPrograms.map((p) => p.name).join(', ')}` : '',
-      profile.preferences?.cabin ? `Preferred cabin: ${profile.preferences.cabin}` : '',
-    ].filter(Boolean).join('. ');
-
-    try {
-      const response = await clientRef.current.messages.create({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1800,
-        messages: [
-          ...history,
-          {
-            role: 'user',
-            content: `Profile: ${profileCtx}. Based on this travel conversation, generate a personalized pre-departure checklist. Return ONLY a raw JSON object — no markdown, no code blocks, no explanation. Use exactly this structure: {"sections":[{"title":"2 Weeks Before","items":[{"id":"w2-1","text":"...","checked":false}]},{"title":"1 Week Before","items":[{"id":"w1-1","text":"...","checked":false}]},{"title":"Day Before","items":[{"id":"db-1","text":"...","checked":false}]},{"title":"At The Airport","items":[{"id":"ap-1","text":"...","checked":false}]}]}. Requirements: reference the traveler's actual card and program names throughout; include specific transfer partner actions, lounge names based on airport and cards, credit enrollment reminders, and status perks; 4-6 specific actionable items per section.`,
-          },
-        ],
-      });
-
-      const raw = response.content[0].text.trim()
-        .replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-      const checklist = JSON.parse(raw);
-
-      setMessages((prev) => {
-        const updated = prev.map((m) => m.id === messageId ? { ...m, checklist } : m);
-        saveTripFromMessages(updated);
-        return updated;
-      });
-    } catch (err) {
-      console.error('[Flio checklist error]', err);
-      setMessages((prev) => prev.map((m) => m.id === messageId ? { ...m, checklist: { error: true } } : m));
-    }
-  };
-
-  const toggleChecklistItem = (messageId, sectionTitle, itemId) => {
-    setMessages((prev) => {
-      const updated = prev.map((m) => {
-        if (m.id !== messageId || !m.checklist?.sections) return m;
-        return {
-          ...m,
-          checklist: {
-            ...m.checklist,
-            sections: m.checklist.sections.map((s) =>
-              s.title !== sectionTitle ? s : {
-                ...s,
-                items: s.items.map((item) =>
-                  item.id !== itemId ? item : { ...item, checked: !item.checked }
-                ),
-              }
-            ),
-          },
-        };
-      });
-      saveTripFromMessages(updated);
+  const toggleIntelligenceChecklistItem = (sectionTitle, itemId) => {
+    setIntelligence((prev) => {
+      if (!prev?.checklist?.sections) return prev;
+      const updated = {
+        ...prev,
+        checklist: {
+          ...prev.checklist,
+          sections: prev.checklist.sections.map((s) =>
+            s.title !== sectionTitle ? s : {
+              ...s,
+              items: s.items.map((item) =>
+                item.id !== itemId ? item : { ...item, checked: !item.checked }
+              ),
+            }
+          ),
+        },
+      };
+      if (currentTripIdRef.current) {
+        const msgs = messagesRef.current;
+        const title = (msgs.find((m) => m.role === 'user')?.text ?? 'Trip').slice(0, 60);
+        onSaveTrip({ id: currentTripIdRef.current, title, date: new Date().toISOString(), messages: msgs, intelligence: updated });
+      }
       return updated;
     });
   };
@@ -1595,7 +1848,7 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
     setInput('');
 
     const userMsg = { id: Date.now(), role: 'user', text: userText, time: userTime };
-    const prevMessages = messages; // capture before state update
+    const prevMessages = messages;
     setMessages((prev) => [...prev, userMsg]);
     setIsStreaming(true);
 
@@ -1607,7 +1860,7 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
     const assistantId = Date.now() + 1;
     setMessages((prev) => [
       ...prev,
-      { id: assistantId, role: 'assistant', text: '', time: now(), summary: undefined },
+      { id: assistantId, role: 'assistant', text: '', time: now() },
     ]);
 
     try {
@@ -1629,28 +1882,34 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
       }
 
       setIsStreaming(false);
-      const summary = await getSummaryData(clientRef.current, history, fullText);
-      setMessages((prev) =>
-        prev.map((m) => (m.id === assistantId ? { ...m, summary } : m))
-      );
 
-      // Auto-save trip
+      // Auto-save trip (without new intelligence yet)
       const finalMessages = [
         ...prevMessages,
         userMsg,
-        { id: assistantId, role: 'assistant', text: fullText, time: now(), summary },
+        { id: assistantId, role: 'assistant', text: fullText, time: now() },
       ];
       if (!currentTripIdRef.current) {
         currentTripIdRef.current = String(Date.now());
         setCurrentTripId(currentTripIdRef.current);
       }
-      const firstUserText = prevMessages.find((m) => m.role === 'user')?.text ?? userText;
-      onSaveTrip({
-        id: currentTripIdRef.current,
-        title: firstUserText.slice(0, 60),
-        date: new Date().toISOString(),
-        messages: finalMessages,
-      });
+      saveTripSnapshot(finalMessages, intelligenceRef.current);
+
+      // Update Trip Intelligence Panel
+      setIntelligenceLoading(true);
+      const profileCtx = [
+        profile.homeAirport ? `Home airport: ${profile.homeAirport.city} (${profile.homeAirport.code})` : '',
+        profile.creditCards?.length ? `Credit cards: ${profile.creditCards.map((c) => c.name).join(', ')}` : '',
+        profile.loyaltyPrograms?.length ? `Loyalty programs: ${profile.loyaltyPrograms.map((p) => p.name).join(', ')}` : '',
+        profile.preferences?.cabin ? `Preferred cabin: ${profile.preferences.cabin}` : '',
+      ].filter(Boolean).join('. ');
+
+      const intel = await getIntelligenceData(clientRef.current, history, fullText, profileCtx);
+      if (intel) {
+        setIntelligence(intel);
+        setNewTabIndicators({ overview: true, checklist: true, strategy: true });
+        saveTripSnapshot(finalMessages, intel);
+      }
 
       return;
     } catch (err) {
@@ -1663,6 +1922,7 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
       );
     } finally {
       setIsStreaming(false);
+      setIntelligenceLoading(false);
     }
   };
 
@@ -1673,8 +1933,18 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
     }
   };
 
+  const intelligencePanelProps = {
+    intelligence,
+    loading: intelligenceLoading,
+    activeTab: activeIntelTab,
+    onTabChange: setActiveIntelTab,
+    newIndicators: newTabIndicators,
+    onClearIndicator: (tab) => setNewTabIndicators((prev) => ({ ...prev, [tab]: false })),
+    onToggleChecklistItem: toggleIntelligenceChecklistItem,
+  };
+
   return (
-    <div className="min-h-screen bg-[#060d1f] font-['Inter',sans-serif] flex flex-col relative overflow-hidden">
+    <div className="h-screen bg-[#060d1f] font-['Inter',sans-serif] flex flex-col relative overflow-hidden">
 
       {/* Sidebar backdrop */}
       {sidebarOpen && (
@@ -1730,7 +2000,7 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
       </div>
 
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-4 border-b border-white/5 bg-[#060d1f] flex-shrink-0">
+      <div className="flex items-center gap-3 px-4 py-4 border-b border-white/5 bg-[#060d1f] flex-shrink-0 z-10">
         <button onClick={onBack} className="text-white/40 hover:text-white transition-colors">
           <ArrowLeftIcon className="w-5 h-5" />
         </button>
@@ -1752,70 +2022,90 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
           >
             <HistoryIcon className="w-5 h-5" />
           </button>
+          {/* Mobile: toggle intelligence drawer */}
+          <button
+            onClick={() => setMobileIntelOpen(true)}
+            className="relative md:hidden text-white/40 hover:text-white transition-colors"
+            aria-label="Trip intelligence"
+          >
+            <PanelRightIcon className="w-5 h-5" />
+            {(newTabIndicators.overview || newTabIndicators.checklist || newTabIndicators.strategy) && (
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#c9a84c]" />
+            )}
+          </button>
           <button onClick={onOpenDashboard} className="text-white/40 hover:text-white transition-colors" aria-label="Profile">
             <UserIcon className="w-5 h-5" />
           </button>
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-6">
-        {messages.map((m) => (
-          <div key={m.id}>
-            <ChatBubble message={m} />
-            {m.role === 'assistant' && m.summary && (
-              <TripSummaryCard summary={m.summary} />
-            )}
-            {m.role === 'assistant' && m.checklist && (
-              <ChecklistCard
-                checklist={m.checklist}
-                onToggleItem={(sectionTitle, itemId) => toggleChecklistItem(m.id, sectionTitle, itemId)}
-              />
-            )}
-            {m.role === 'assistant' &&
-              m.id === lastAssistantMsgId &&
-              !m.checklist &&
-              !isStreaming &&
-              m.text !== GREETING && (
-              <div className="ml-9 mb-4">
-                <button
-                  onClick={() => generateChecklist(m.id)}
-                  className="flex items-center gap-2 text-xs text-white/40 hover:text-white/70 border border-white/10 hover:border-white/20 rounded-full px-3 py-1.5 transition-all duration-200"
-                >
-                  <span className="text-sm leading-none">📋</span>
-                  Generate Pre-Departure Checklist
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
-        {isStreaming && messages[messages.length - 1]?.text === '' && (
-          <TypingIndicator />
-        )}
-        <div ref={bottomRef} />
-      </div>
+      {/* Main: split panel */}
+      <div className="flex-1 flex overflow-hidden">
 
-      {/* Input */}
-      <div className="px-4 py-4 border-t border-white/5 bg-[#060d1f] flex-shrink-0">
-        <div className="flex items-center gap-3 bg-[#0f1e3d] border border-white/10 rounded-full px-4 py-2.5">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={onKeyDown}
-            placeholder="Ask Flio anything..."
-            disabled={isStreaming}
-            className="flex-1 bg-transparent text-white text-sm placeholder-white/25 focus:outline-none disabled:opacity-50"
-          />
-          <button
-            onClick={send}
-            disabled={!input.trim() || isStreaming}
-            className="w-7 h-7 rounded-full bg-[#c9a84c] disabled:bg-white/10 flex items-center justify-center transition-colors flex-shrink-0"
-          >
-            <SendIcon className="w-3.5 h-3.5 text-[#060d1f]" />
-          </button>
+        {/* Left: Chat (full width on mobile, 60% on desktop) */}
+        <div className="flex flex-col overflow-hidden w-full md:w-[60%]">
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto px-4 py-6">
+            {messages.map((m) => (
+              <div key={m.id}>
+                <ChatBubble message={m} />
+              </div>
+            ))}
+            {isStreaming && messages[messages.length - 1]?.text === '' && (
+              <TypingIndicator />
+            )}
+            <div ref={bottomRef} />
+          </div>
+
+          {/* Input */}
+          <div className="px-4 py-4 border-t border-white/5 bg-[#060d1f] flex-shrink-0">
+            <div className="flex items-center gap-3 bg-[#0f1e3d] border border-white/10 rounded-full px-4 py-2.5">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={onKeyDown}
+                placeholder="Ask Flio anything..."
+                disabled={isStreaming}
+                className="flex-1 bg-transparent text-white text-sm placeholder-white/25 focus:outline-none disabled:opacity-50"
+              />
+              <button
+                onClick={send}
+                disabled={!input.trim() || isStreaming}
+                className="w-7 h-7 rounded-full bg-[#c9a84c] disabled:bg-white/10 flex items-center justify-center transition-colors flex-shrink-0"
+              >
+                <SendIcon className="w-3.5 h-3.5 text-[#060d1f]" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="hidden md:block w-px bg-white/[0.06] flex-shrink-0" />
+
+        {/* Right: Trip Intelligence Panel (desktop only) */}
+        <div className="hidden md:flex flex-col overflow-hidden md:w-[40%] bg-[#060d1f]">
+          <TripIntelligencePanel {...intelligencePanelProps} />
         </div>
       </div>
+
+      {/* Mobile: intelligence drawer */}
+      {mobileIntelOpen && (
+        <div className="md:hidden fixed inset-0 z-40 flex flex-col justify-end">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setMobileIntelOpen(false)} />
+          <div className="relative bg-[#060d1f] border-t border-white/8 rounded-t-2xl flex flex-col" style={{ maxHeight: '80vh' }}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/8 flex-shrink-0">
+              <span className="text-white text-sm font-medium">Trip Intelligence</span>
+              <button onClick={() => setMobileIntelOpen(false)} className="text-white/40 hover:text-white transition-colors">
+                <XIcon className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto min-h-0">
+              <TripIntelligencePanel {...intelligencePanelProps} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
