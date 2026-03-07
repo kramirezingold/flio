@@ -513,8 +513,9 @@ function DemoChat({ onGetStarted }) {
       }}
     >
       {/* Section title */}
-      <div className="text-center mb-8">
-        <h2 className="text-2xl text-white font-['Playfair_Display',serif] font-normal">See Flio in action</h2>
+      <div className="text-center mb-10">
+        <p className="text-[10px] text-[#c9a84c] uppercase tracking-widest mb-3">See Flio in action</p>
+        <h2 className="text-3xl md:text-4xl text-white font-['Playfair_Display',serif] font-normal">What smarter travel sounds like.</h2>
       </div>
 
       {/* Chat window */}
@@ -1031,7 +1032,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
           style={{ background: 'radial-gradient(ellipse 70% 50% at 50% 50%, rgba(201,168,76,0.09) 0%, transparent 70%)' }}
         />
         <h2 className="relative text-4xl md:text-6xl text-white leading-tight tracking-tight max-w-2xl mb-5 font-['Playfair_Display',serif] font-normal">
-          Your points are worth more<br className="hidden md:block" /> than you think.
+          Your points are worth<br />more than you think.
         </h2>
         <p className="relative text-white/45 text-base md:text-lg max-w-sm mb-10 leading-relaxed">
           Most travelers leave $1,200+ on the table every year. Flio helps you claim it.

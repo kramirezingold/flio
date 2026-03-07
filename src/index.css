@@ -69,7 +69,6 @@ body {
   to   { opacity: 1; transform: translateY(0);    }
 }
 .animate-word {
-  display: inline-block;
   opacity: 0;
   animation: wordFadeIn 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
