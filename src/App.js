@@ -28,6 +28,14 @@ function ChevronRightIcon({ className }) {
   );
 }
 
+function ChevronDownIcon({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+    </svg>
+  );
+}
+
 function ArrowLeftIcon({ className }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -595,25 +603,51 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
       </nav>
 
       {/* Hero */}
-      <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center">
+      <div className="relative min-h-screen flex flex-col items-center justify-center px-6 text-center overflow-hidden">
+
+        {/* Background: central gold radial glow */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse 90% 70% at 50% 45%, rgba(201,168,76,0.11) 0%, rgba(201,168,76,0.03) 50%, transparent 72%)' }}
+        />
+        {/* Background: dot grid fading at edges */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.055) 1px, transparent 1px)',
+            backgroundSize: '36px 36px',
+            maskImage: 'radial-gradient(ellipse 75% 75% at 50% 50%, black 0%, transparent 100%)',
+            WebkitMaskImage: 'radial-gradient(ellipse 75% 75% at 50% 50%, black 0%, transparent 100%)',
+          }}
+        />
+        {/* Background: soft off-center accent orbs */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: 'radial-gradient(circle 700px at 10% 15%, rgba(201,168,76,0.045) 0%, transparent 70%)' }}
+        />
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: 'radial-gradient(circle 600px at 90% 85%, rgba(201,168,76,0.04) 0%, transparent 70%)' }}
+        />
+
         {/* Badge */}
-        <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5">
+        <div className="relative mb-8 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5">
           <span className="h-1.5 w-1.5 rounded-full bg-[#c9a84c]" />
           <span className="text-xs text-white/60 tracking-wide">AI-Powered Travel Concierge</span>
         </div>
 
         {/* Headline */}
-        <h1 className="text-5xl md:text-7xl font-light text-white leading-tight tracking-tight mb-4">
+        <h1 className="relative text-5xl md:text-7xl font-light text-white leading-tight tracking-tight mb-4">
           Your points. Your perks.<br />
           <span className="text-[#c9a84c]">Finally working for you.</span>
         </h1>
 
-        <p className="text-white/50 text-lg md:text-xl max-w-md leading-relaxed mb-12">
+        <p className="relative text-white/50 text-lg md:text-xl max-w-md leading-relaxed mb-12">
           Your personal AI concierge that knows your preferences, maximizes your points, and gets more out of every trip.
         </p>
 
         {/* CTAs */}
-        <div className="flex flex-col sm:flex-row items-center gap-4 mb-10">
+        <div className="relative flex flex-col sm:flex-row items-center gap-4 mb-10">
           <button
             onClick={onGetStarted}
             className="flex items-center gap-2 bg-[#c9a84c] hover:bg-[#b8973d] text-[#060d1f] font-semibold px-8 py-3.5 rounded-full transition-colors text-sm tracking-wide"
@@ -630,7 +664,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
         </div>
 
         {/* Feature pills */}
-        <div className="flex flex-wrap justify-center gap-3">
+        <div className="relative flex flex-wrap justify-center gap-3">
           {['Points optimization', 'Flight alerts', 'Hotel upgrades', 'Itinerary planning'].map((f) => (
             <span
               key={f}
@@ -639,6 +673,12 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
               {f}
             </span>
           ))}
+        </div>
+
+        {/* Scroll indicator */}
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 animate-bounce">
+          <span className="text-white/20 text-[9px] uppercase tracking-[0.18em]">Scroll</span>
+          <ChevronDownIcon className="w-4 h-4 text-[#c9a84c]/40" />
         </div>
       </div>
 
