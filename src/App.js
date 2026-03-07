@@ -3114,6 +3114,180 @@ function SettingsSection({ profile, onSave }) {
   );
 }
 
+// ── Flio Score ──────────────────────────────────────────────────────────────
+
+const TRANSFERABLE_CARD_IDS = ['csr', 'csp', 'amex-plat', 'amex-gold', 'venture-x'];
+const HOTEL_PROGRAM_IDS     = ['hyatt', 'marriott', 'hilton', 'ihg'];
+const AIRLINE_PROGRAM_IDS   = ['united', 'delta', 'american', 'alaska', 'southwest'];
+const LOUNGE_CARD_IDS       = ['csr', 'amex-plat', 'venture-x'];
+
+function computeFlioScore(profile) {
+  const programs = profile?.loyaltyPrograms ?? [];
+  const cards    = profile?.creditCards ?? [];
+  const prefs    = profile?.preferences ?? {};
+  const programIds = programs.map((p) => p.id);
+  const cardIds    = cards.map((c) => c.id);
+
+  const checks = {
+    hasTransferable:  cardIds.some((id) => TRANSFERABLE_CARD_IDS.includes(id)),
+    hasHotel:         programIds.some((id) => HOTEL_PROGRAM_IDS.includes(id)),
+    hasAirline:       programIds.some((id) => AIRLINE_PROGRAM_IDS.includes(id)),
+    hasBigBalance:    [...programs, ...cards].some((p) => (p.balance ?? 0) >= 50000),
+    hasMultipleCards: cards.length > 1,
+    hasLounge:        cardIds.some((id) => LOUNGE_CARD_IDS.includes(id)),
+    hasAirport:       !!profile?.homeAirport,
+    hasPreferences:   Object.values(prefs).some((v) => v),
+    hasBoth:          programIds.some((id) => HOTEL_PROGRAM_IDS.includes(id)) && programIds.some((id) => AIRLINE_PROGRAM_IDS.includes(id)),
+  };
+
+  let score = 0;
+  if (checks.hasTransferable)  score += 20;
+  if (checks.hasHotel)         score += 15;
+  if (checks.hasAirline)       score += 15;
+  if (checks.hasBigBalance)    score += 10;
+  if (checks.hasMultipleCards) score += 10;
+  if (checks.hasLounge)        score += 15;
+  if (checks.hasAirport)       score +=  5;
+  if (checks.hasPreferences)   score +=  5;
+  if (checks.hasBoth)          score +=  5;
+
+  const suggestions = [];
+  if (!checks.hasTransferable)  suggestions.push({ text: 'Add a transferable points card like Chase Sapphire Reserve or Amex Platinum', pts: 20 });
+  if (!checks.hasLounge)        suggestions.push({ text: 'Add a card with lounge access — Amex Platinum, Chase Sapphire Reserve, or Venture X', pts: 15 });
+  if (!checks.hasHotel)         suggestions.push({ text: 'Add a hotel program — World of Hyatt has the best redemption value', pts: 15 });
+  if (!checks.hasAirline)       suggestions.push({ text: 'Add an airline loyalty program to unlock award flight redemptions', pts: 15 });
+  if (!checks.hasMultipleCards) suggestions.push({ text: 'Add a second credit card to cover more spend categories', pts: 10 });
+  if (!checks.hasBigBalance)    suggestions.push({ text: 'Build a single program balance above 50,000 points for premium redemptions', pts: 10 });
+  if (!checks.hasBoth && (checks.hasHotel || checks.hasAirline))
+    suggestions.push({ text: 'Add both a hotel and airline program for the best travel combinations', pts: 5 });
+  if (!checks.hasAirport)       suggestions.push({ text: 'Set your home airport to get tailored routing advice', pts: 5 });
+  if (!checks.hasPreferences)   suggestions.push({ text: 'Set your travel preferences to personalize your recommendations', pts: 5 });
+
+  return { score, suggestions: suggestions.slice(0, 3) };
+}
+
+function ScoreRing({ score, color }) {
+  const r = 54;
+  const circumference = 2 * Math.PI * r;
+  const [animated, setAnimated] = useState(0);
+
+  useEffect(() => {
+    setAnimated(0);
+    let rafId;
+    let start = null;
+    const duration = 1400;
+    const tick = (ts) => {
+      if (!start) start = ts;
+      const progress = Math.min((ts - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setAnimated(Math.round(eased * score));
+      if (progress < 1) rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, [score]);
+
+  const offset = circumference * (1 - animated / 100);
+
+  return (
+    <svg width="148" height="148" viewBox="0 0 148 148" className="overflow-visible">
+      {/* Track */}
+      <circle cx="74" cy="74" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="10" />
+      {/* Glow */}
+      <circle
+        cx="74" cy="74" r={r} fill="none"
+        stroke={color} strokeWidth="16" strokeLinecap="round"
+        strokeDasharray={circumference} strokeDashoffset={offset}
+        transform="rotate(-90 74 74)"
+        style={{ opacity: 0.18, filter: 'blur(5px)' }}
+      />
+      {/* Arc */}
+      <circle
+        cx="74" cy="74" r={r} fill="none"
+        stroke={color} strokeWidth="10" strokeLinecap="round"
+        strokeDasharray={circumference} strokeDashoffset={offset}
+        transform="rotate(-90 74 74)"
+      />
+    </svg>
+  );
+}
+
+function FlioScoreSection({ profile }) {
+  const { score, suggestions } = useMemo(() => computeFlioScore(profile), [profile]);
+
+  const color = score <= 40 ? '#ef4444'
+    : score <= 70 ? '#f59e0b'
+    : score <= 90 ? '#60a5fa'
+    : '#c9a84c';
+
+  const label = score <= 40 ? 'Beginner'
+    : score <= 70 ? 'Intermediate'
+    : score <= 90 ? 'Advanced'
+    : 'Elite';
+
+  const labelBg = `${color}18`;
+  const labelBorder = `${color}40`;
+
+  return (
+    <div className="mb-8 bg-white/[0.025] border border-white/[0.06] rounded-2xl p-6">
+      {/* Ring + number */}
+      <div className="flex flex-col items-center mb-5">
+        <div className="relative">
+          <ScoreRing score={score} color={color} />
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+            <span className="text-[2.6rem] font-bold text-white leading-none tabular-nums">{score}</span>
+            <span className="text-[10px] text-white/30 mt-0.5 tracking-wide">/ 100</span>
+          </div>
+        </div>
+        <div className="mt-4 flex flex-col items-center gap-1.5">
+          <span
+            className="text-xs font-semibold px-3.5 py-1 rounded-full"
+            style={{ color, backgroundColor: labelBg, border: `1px solid ${labelBorder}` }}
+          >
+            {label}
+          </span>
+          <p className="text-white/30 text-xs tracking-wide">Flio Score · how optimized your setup is</p>
+        </div>
+      </div>
+
+      <div className="border-t border-white/[0.05] mb-5" />
+
+      {/* Suggestions */}
+      {score >= 100 ? (
+        <div className="text-center py-1">
+          <p className="text-white/65 text-sm">Your setup is fully optimized. 🏆</p>
+        </div>
+      ) : (
+        <>
+          <p className="text-[10px] text-white/25 uppercase tracking-widest mb-3">How to improve</p>
+          <div className="flex flex-col gap-2.5">
+            {suggestions.map((s, i) => (
+              <div
+                key={i}
+                className="flex items-start gap-3 bg-white/[0.03] border border-white/[0.05] rounded-xl px-4 py-3"
+              >
+                <div
+                  className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold mt-0.5"
+                  style={{ backgroundColor: labelBg, color, border: `1px solid ${labelBorder}` }}
+                >
+                  +
+                </div>
+                <p className="flex-1 text-white/60 text-xs leading-relaxed">{s.text}</p>
+                <span
+                  className="flex-shrink-0 text-xs font-semibold tabular-nums self-center"
+                  style={{ color }}
+                >
+                  +{s.pts}pts
+                </span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function ProfileDashboard({ profile, usedCredits, onToggleCredit, onSave, onBack }) {
   const [tab, setTab] = useState('wallet'); // 'wallet' | 'credits' | 'settings'
 
@@ -3154,6 +3328,7 @@ function ProfileDashboard({ profile, usedCredits, onToggleCredit, onSave, onBack
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
         <div className="px-5 py-7 max-w-2xl mx-auto w-full">
+          <FlioScoreSection profile={profile} />
           {tab === 'wallet'   && <WalletSection  profile={profile} />}
           {tab === 'credits'  && <CreditsSection profile={profile} usedCredits={usedCredits} onToggle={onToggleCredit} />}
           {tab === 'settings' && <SettingsSection profile={profile} onSave={onSave} />}
