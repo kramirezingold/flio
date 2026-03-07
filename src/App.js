@@ -706,7 +706,7 @@ function FadeInSection({ children }) {
 
 function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, onEditProfile, isLight, onToggleTheme }) {
   const [scrolled, setScrolled]       = useState(false);
-  const [activeSection, setActiveSection] = useState(null);
+  const [activeSection, setActiveSection] = useState('home');
   const [menuOpen, setMenuOpen]       = useState(false);
 
   useEffect(() => {
@@ -716,7 +716,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
   }, []);
 
   useEffect(() => {
-    const ids = ['how-it-works', 'wallet', 'works-with', 'pricing'];
+    const ids = ['home', 'demo', 'how-it-works', 'wallet', 'works-with', 'pricing'];
     const observer = new IntersectionObserver(
       (entries) => entries.forEach((e) => { if (e.isIntersecting) setActiveSection(e.target.id); }),
       { threshold: 0.25, rootMargin: '-80px 0px -40% 0px' }
@@ -727,11 +727,14 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
 
   const scrollToSection = (id) => {
     setMenuOpen(false);
+    if (id === 'home') { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
     const el = document.getElementById(id);
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const NAV_LINKS = [
+    { label: 'Home',         id: 'home' },
+    { label: 'Demo',         id: 'demo' },
     { label: 'How It Works', id: 'how-it-works' },
     { label: 'Your Wallet',  id: 'wallet' },
     { label: 'Works With',   id: 'works-with' },
@@ -763,18 +766,25 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
 
         {/* Center links — desktop */}
         <div className="hidden md:flex items-center gap-7">
-          {NAV_LINKS.map((link) => (
-            <button
-              key={link.id}
-              onClick={() => scrollToSection(link.id)}
-              className="text-sm transition-colors duration-200"
-              style={{ color: activeSection === link.id ? '#c9a84c' : tDim }}
-              onMouseEnter={(e) => { if (activeSection !== link.id) e.currentTarget.style.color = tBase; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = activeSection === link.id ? '#c9a84c' : tDim; }}
-            >
-              {link.label}
-            </button>
-          ))}
+          {NAV_LINKS.map((link) => {
+            const isActive = activeSection === link.id;
+            return (
+              <button
+                key={link.id}
+                onClick={() => scrollToSection(link.id)}
+                className="text-sm pb-0.5"
+                style={{
+                  color: isActive ? '#c9a84c' : tDim,
+                  borderBottom: isActive ? '1px solid rgba(201,168,76,0.55)' : '1px solid transparent',
+                  transition: 'color 0.2s ease, border-color 0.2s ease',
+                }}
+                onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.color = tBase; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = isActive ? '#c9a84c' : tDim; }}
+              >
+                {link.label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Right */}
@@ -807,16 +817,22 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
             transition: 'background-color 0.3s ease',
           }}
         >
-          {NAV_LINKS.map((link) => (
-            <button
-              key={link.id}
-              onClick={() => scrollToSection(link.id)}
-              className="text-sm text-left"
-              style={{ color: activeSection === link.id ? '#c9a84c' : tDim }}
-            >
-              {link.label}
-            </button>
-          ))}
+          {NAV_LINKS.map((link) => {
+            const isActive = activeSection === link.id;
+            return (
+              <button
+                key={link.id}
+                onClick={() => scrollToSection(link.id)}
+                className="text-sm text-left pb-0.5 w-fit"
+                style={{
+                  color: isActive ? '#c9a84c' : tDim,
+                  borderBottom: isActive ? '1px solid rgba(201,168,76,0.55)' : '1px solid transparent',
+                }}
+              >
+                {link.label}
+              </button>
+            );
+          })}
           <button
             onClick={onGetStarted}
             className="btn-gold flex items-center justify-center gap-1.5 bg-[#c9a84c] hover:bg-[#d4af37] text-[#060d1f] font-semibold px-5 py-2.5 rounded-full text-sm mt-1"
@@ -827,7 +843,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
       )}
 
       {/* Hero */}
-      <div className="relative min-h-screen flex flex-col items-center justify-center px-6 text-center overflow-hidden">
+      <div id="home" className="relative min-h-screen flex flex-col items-center justify-center px-6 text-center overflow-hidden">
 
         {/* Background: central gold radial glow */}
         <div
@@ -916,7 +932,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
 
       <FadeInSection>
         {/* Demo chat */}
-        <div className="pt-20 pb-16">
+        <div id="demo" className="pt-20 pb-16">
           <DemoChat onGetStarted={onGetStarted} />
         </div>
       </FadeInSection>
