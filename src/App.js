@@ -245,8 +245,8 @@ function BalanceModal({ item, type, onConfirm, onClose }) {
   const [value, setValue] = useState('');
   const label = type === 'loyalty' ? `How many ${item.currency} do you have?` : "What's your points balance?";
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center z-50 px-4 pb-4 sm:pb-0">
-      <div className="bg-[#0f1e3d] border border-white/10 rounded-2xl p-6 w-full max-w-sm">
+    <div className="fixed inset-0 bg-black/60 glass-panel flex items-end sm:items-center justify-center z-50 px-4 pb-4 sm:pb-0">
+      <div className="bg-[#0d1526] border border-[#c9a84c]/15 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
         <p className="text-xs text-white/40 uppercase tracking-widest mb-1">{item.name}</p>
         <h3 className="text-white font-medium mb-5">{label}</h3>
         <input
@@ -255,7 +255,7 @@ function BalanceModal({ item, type, onConfirm, onClose }) {
           onChange={(e) => setValue(e.target.value)}
           placeholder="e.g. 50000"
           autoFocus
-          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-white/20 focus:outline-none focus:border-[#c9a84c]/50 transition-all mb-4"
+          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-white/20 input-gold focus:outline-none transition-all mb-4"
         />
         <div className="flex gap-3">
           <button
@@ -266,7 +266,7 @@ function BalanceModal({ item, type, onConfirm, onClose }) {
           </button>
           <button
             onClick={() => onConfirm(parseInt(value.replace(/,/g, '')) || 0)}
-            className="flex-1 py-3 rounded-full bg-[#c9a84c] text-[#060d1f] font-semibold text-sm hover:bg-[#b8973d] transition-colors"
+            className="btn-gold flex-1 py-3 rounded-full bg-[#c9a84c] hover:bg-[#d4af37] text-[#060d1f] font-semibold text-sm"
           >
             Confirm
           </button>
@@ -287,10 +287,10 @@ function AirportStep({ query, onChange, filtered, selected, onSelect }) {
           value={query}
           onChange={(e) => onChange(e.target.value)}
           placeholder="Search by city or airport code…"
-          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-white/20 focus:outline-none focus:border-[#c9a84c]/50 transition-all"
+          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-white/20 input-gold focus:outline-none transition-all"
         />
         {filtered.length > 0 && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-[#0f1e3d] border border-white/10 rounded-xl overflow-hidden z-10 shadow-2xl">
+          <div className="absolute top-full left-0 right-0 mt-1 bg-[#111d35] border border-white/10 rounded-xl overflow-hidden z-10 shadow-2xl">
             {filtered.map((a) => (
               <button
                 key={a.code}
@@ -514,13 +514,13 @@ function DemoChat({ onGetStarted }) {
     >
       {/* Section title */}
       <div className="text-center mb-8">
-        <h2 className="text-2xl font-light text-white">See Flio in action</h2>
+        <h2 className="text-2xl text-white font-['Playfair_Display',serif] font-normal">See Flio in action</h2>
       </div>
 
       {/* Chat window */}
-      <div className="rounded-2xl border border-white/10 bg-[#0a1328] overflow-hidden">
+      <div className="rounded-2xl border border-white/10 bg-[#0d1526] overflow-hidden">
         {/* Window chrome */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-white/5 bg-[#060d1f]">
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-white/5 bg-[#0a0f1e]">
           <div className="w-7 h-7 rounded-full bg-[#c9a84c]/20 border border-[#c9a84c]/30 flex items-center justify-center">
             <PlaneIcon className="w-3.5 h-3.5 text-[#c9a84c]" />
           </div>
@@ -546,7 +546,7 @@ function DemoChat({ onGetStarted }) {
                     className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
                       isUser
                         ? 'bg-[#c9a84c] text-[#060d1f] font-medium rounded-br-sm'
-                        : 'bg-[#0f1e3d] text-white/90 rounded-bl-sm'
+                        : 'bg-[#111d35] text-white/90 rounded-bl-sm'
                     }`}
                   >
                     {msg.text}
@@ -562,7 +562,7 @@ function DemoChat({ onGetStarted }) {
               <div className="w-6 h-6 rounded-full bg-[#c9a84c]/20 border border-[#c9a84c]/30 flex items-center justify-center mr-2 mt-0.5 flex-shrink-0">
                 <PlaneIcon className="w-3 h-3 text-[#c9a84c]" />
               </div>
-              <div className="bg-[#0f1e3d] rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1">
+              <div className="bg-[#111d35] rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style={{ animationDelay: '0ms' }} />
                 <span className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style={{ animationDelay: '150ms' }} />
                 <span className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style={{ animationDelay: '300ms' }} />
@@ -572,11 +572,17 @@ function DemoChat({ onGetStarted }) {
         </div>
       </div>
 
+      {/* Bottom gradient fade */}
+      <div
+        className="pointer-events-none -mt-16 h-16"
+        style={{ background: 'linear-gradient(to bottom, transparent, #0a0f1e)' }}
+      />
+
       {/* CTA */}
-      <div className="text-center mt-6">
+      <div className="text-center mt-2">
         <button
           onClick={onGetStarted}
-          className="text-sm text-[#c9a84c] hover:text-white transition-colors"
+          className="btn-ghost text-sm text-[#c9a84c] hover:text-white border border-[#c9a84c]/20 hover:border-[#c9a84c]/40 rounded-full px-5 py-2 transition-all"
         >
           Try it with your own profile →
         </button>
@@ -625,9 +631,9 @@ function FadeInSection({ children }) {
 
 function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, onEditProfile }) {
   return (
-    <div className="bg-[#060d1f] font-['Inter',sans-serif] flex flex-col">
+    <div className="bg-[#0a0f1e] font-['DM_Sans',sans-serif] flex flex-col">
       {/* Nav */}
-      <nav className="flex items-center justify-between px-6 py-5">
+      <nav className="flex items-center justify-between px-6 py-5 sticky top-0 z-40 bg-[#0a0f1e]/80 backdrop-blur-md border-b border-white/[0.04]">
         <div className="flex items-center gap-2">
           <PlaneIcon className="w-5 h-5 text-[#c9a84c]" />
           <span className="text-white font-semibold tracking-widest text-sm uppercase">Flio</span>
@@ -682,12 +688,14 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
         </div>
 
         {/* Headline */}
-        <h1 className="relative text-5xl md:text-7xl font-light text-white leading-tight tracking-tight mb-4">
-          Your points. Your perks.<br />
-          <span className="text-[#c9a84c]">Finally working for you.</span>
+        <h1 className="relative text-5xl md:text-7xl text-white leading-tight tracking-tight mb-4 font-['Playfair_Display',serif] font-normal">
+          <span className="block animate-word" style={{ animationDelay: '80ms' }}>Your points. Your perks.</span>
+          <span className="block animate-word" style={{ animationDelay: '280ms' }}>
+            <span className="text-[#c9a84c] italic">Finally working for you.</span>
+          </span>
         </h1>
 
-        <p className="relative text-white/50 text-lg md:text-xl max-w-md leading-relaxed mb-12">
+        <p className="relative animate-word text-white/45 text-lg md:text-xl max-w-md leading-relaxed mb-12" style={{ animationDelay: '500ms' }}>
           Your personal AI concierge that knows your preferences, maximizes your points, and gets more out of every trip.
         </p>
 
@@ -695,7 +703,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
         <div className="relative flex flex-col sm:flex-row items-center gap-4 mb-10">
           <button
             onClick={onGetStarted}
-            className="flex items-center gap-2 bg-[#c9a84c] hover:bg-[#b8973d] text-[#060d1f] font-semibold px-8 py-3.5 rounded-full transition-colors text-sm tracking-wide"
+            className="btn-gold flex items-center gap-2 bg-[#c9a84c] hover:bg-[#d4af37] text-[#060d1f] font-semibold px-8 py-3.5 rounded-full text-sm tracking-wide"
           >
             Get started
             <ChevronRightIcon className="w-4 h-4" />
@@ -723,7 +731,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
         {/* Bottom fade — blends hero glow into the next section */}
         <div
           className="absolute bottom-0 left-0 right-0 h-40 pointer-events-none"
-          style={{ background: 'linear-gradient(to bottom, transparent 0%, #060d1f 100%)' }}
+          style={{ background: 'linear-gradient(to bottom, transparent 0%, #0a0f1e 100%)' }}
         />
 
         {/* Scroll indicator */}
@@ -745,7 +753,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
         <div className="px-6 pb-32 max-w-5xl mx-auto w-full">
         <div className="text-center mb-14">
           <p className="text-[10px] text-[#c9a84c] uppercase tracking-widest mb-3">How it works</p>
-          <h2 className="text-3xl md:text-4xl font-light text-white">Smart travel advice in seconds.</h2>
+          <h2 className="text-3xl md:text-4xl text-white font-['Playfair_Display',serif] font-normal">Smart travel advice in seconds.</h2>
         </div>
         <div className="relative grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-0">
           {/* Connecting line — sits at vertical center of the step number */}
@@ -762,7 +770,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
                   <ChevronRightIcon className="w-4 h-4 text-[#c9a84c]/60" />
                 </div>
               )}
-              <div className="h-full bg-[#0a1328] border border-white/8 hover:border-[#c9a84c]/30 hover:scale-[1.03] rounded-2xl p-6 transition-all duration-300 cursor-default">
+              <div className="card-hover h-full bg-[#0d1526] border border-[#c9a84c]/10 rounded-2xl p-6 cursor-default">
                 <p className="text-[#c9a84c] text-3xl font-light tracking-tight mb-4">{step.num}</p>
                 <p className="text-white font-semibold text-base mb-2">{step.title}</p>
                 <p className="text-white/45 text-sm leading-relaxed">{step.desc}</p>
@@ -779,13 +787,13 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
         {/* Section header */}
         <div className="text-center mb-10">
           <p className="text-[10px] text-[#c9a84c] uppercase tracking-widest mb-3">Your Travel Wallet</p>
-          <h2 className="text-3xl md:text-4xl font-light text-white">See exactly what your points are worth.</h2>
+          <h2 className="text-3xl md:text-4xl text-white font-['Playfair_Display',serif] font-normal">See exactly what your points are worth.</h2>
         </div>
 
         {/* Preview card */}
         <div
-          className="relative rounded-2xl border border-white/10 bg-[#0a1328] overflow-hidden"
-          style={{ boxShadow: '0 0 0 1px rgba(201,168,76,0.08), 0 0 80px rgba(201,168,76,0.07), 0 0 160px rgba(201,168,76,0.04)' }}
+          className="relative rounded-2xl border border-[#c9a84c]/12 bg-[#0d1526] overflow-hidden"
+          style={{ boxShadow: '0 0 0 1px rgba(201,168,76,0.08), 0 0 80px rgba(201,168,76,0.09), 0 0 160px rgba(201,168,76,0.05)' }}
         >
           {/* Card header */}
           <div className="flex items-center justify-between px-6 py-5 border-b border-white/5">
@@ -848,7 +856,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
                     issuer: 'AMEX',
                   },
                 ].map((c) => (
-                  <div key={c.name} className="flex items-center gap-3 bg-[#060d1f] rounded-xl px-4 py-3">
+                  <div key={c.name} className="flex items-center gap-3 bg-[#0a0f1e] rounded-xl px-4 py-3">
                     <div
                       style={{ background: c.cardBg }}
                       className="w-10 h-6 rounded-md flex items-center justify-center flex-shrink-0"
@@ -870,12 +878,12 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
 
           {/* Frosted unlock overlay */}
           <div className="absolute bottom-0 left-0 right-0 h-56 flex flex-col items-center justify-end pb-8 gap-2.5"
-            style={{ background: 'linear-gradient(to bottom, transparent 0%, rgba(10,19,40,0.85) 35%, rgba(10,19,40,0.97) 60%, #0a1328 100%)' }}
+            style={{ background: 'linear-gradient(to bottom, transparent 0%, rgba(13,21,38,0.85) 35%, rgba(13,21,38,0.97) 60%, #0d1526 100%)' }}
           >
             <p className="text-white/35 text-xs tracking-wide">Your real balances. Your actual credits.</p>
             <button
               onClick={onGetStarted}
-              className="flex items-center gap-2 bg-[#c9a84c] hover:bg-[#b8973d] text-[#060d1f] font-semibold px-6 py-2.5 rounded-full transition-colors text-sm tracking-wide"
+              className="btn-gold flex items-center gap-2 bg-[#c9a84c] hover:bg-[#d4af37] text-[#060d1f] font-semibold px-6 py-2.5 rounded-full text-sm tracking-wide"
             >
               Build your profile to see yours
               <ChevronRightIcon className="w-3.5 h-3.5" />
@@ -891,7 +899,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
           {/* Section header */}
           <div className="text-center mb-4">
           <p className="text-[10px] text-[#c9a84c] uppercase tracking-widest mb-3">Works With</p>
-          <h2 className="text-3xl md:text-4xl font-light text-white mb-3">Built around your actual wallet.</h2>
+          <h2 className="text-3xl md:text-4xl text-white mb-3 font-['Playfair_Display',serif] font-normal">Built around your actual wallet.</h2>
           <p className="text-white/40 text-sm max-w-lg mx-auto leading-relaxed">
             Flio knows the earning rates, transfer partners, redemption sweet spots, and annual credits for every program listed.
           </p>
@@ -914,7 +922,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
               ].map((item) => (
                 <div
                   key={item.name}
-                  className="group flex items-center gap-2 bg-[#0a1328] border border-white/8 hover:border-[#c9a84c]/35 hover:bg-[#c9a84c]/[0.04] rounded-full px-4 py-2 transition-all duration-200 cursor-default"
+                  className="group flex items-center gap-2 bg-[#0d1526] border border-white/8 hover:border-[#c9a84c]/35 hover:bg-[#c9a84c]/[0.04] rounded-full px-4 py-2 transition-all duration-200 cursor-default"
                   style={{ '--tw-shadow': '0 0 0 0 transparent' }}
                 >
                   <span className="text-sm leading-none">{item.emoji}</span>
@@ -938,7 +946,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
               ].map((item) => (
                 <div
                   key={item.name}
-                  className="group flex items-center gap-2 bg-[#0a1328] border border-white/8 hover:border-[#c9a84c]/35 hover:bg-[#c9a84c]/[0.04] rounded-full px-4 py-2 transition-all duration-200 cursor-default"
+                  className="group flex items-center gap-2 bg-[#0d1526] border border-white/8 hover:border-[#c9a84c]/35 hover:bg-[#c9a84c]/[0.04] rounded-full px-4 py-2 transition-all duration-200 cursor-default"
                 >
                   <span className="text-sm leading-none">{item.emoji}</span>
                   <span className="text-white/65 group-hover:text-white/90 text-sm transition-colors">{item.name}</span>
@@ -956,7 +964,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
         {/* Section header */}
         <div className="text-center mb-12">
           <p className="text-[10px] text-[#c9a84c] uppercase tracking-widest mb-3">The Difference</p>
-          <h2 className="text-3xl md:text-4xl font-light text-white mb-3">Stop leaving money on the table.</h2>
+          <h2 className="text-3xl md:text-4xl text-white mb-3 font-['Playfair_Display',serif] font-normal">Stop leaving money on the table.</h2>
           <p className="text-white/40 text-sm max-w-md mx-auto leading-relaxed">
             The average traveler with premium cards leaves $1,200+ in unused value on the table every year.
           </p>
@@ -1022,15 +1030,15 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
           className="absolute inset-0 pointer-events-none"
           style={{ background: 'radial-gradient(ellipse 70% 50% at 50% 50%, rgba(201,168,76,0.09) 0%, transparent 70%)' }}
         />
-        <h2 className="relative text-4xl md:text-6xl font-light text-white leading-tight tracking-tight max-w-2xl mb-5">
-          Your points are worth more than you think.
+        <h2 className="relative text-4xl md:text-6xl text-white leading-tight tracking-tight max-w-2xl mb-5 font-['Playfair_Display',serif] font-normal">
+          Your points are worth more<br className="hidden md:block" /> than you think.
         </h2>
         <p className="relative text-white/45 text-base md:text-lg max-w-sm mb-10 leading-relaxed">
           Most travelers leave $1,200+ on the table every year. Flio helps you claim it.
         </p>
         <button
           onClick={onGetStarted}
-          className="relative flex items-center gap-2 bg-[#c9a84c] hover:bg-[#b8973d] text-[#060d1f] font-semibold px-9 py-4 rounded-full transition-colors text-base tracking-wide mb-5"
+          className="btn-gold relative flex items-center gap-2 bg-[#c9a84c] hover:bg-[#d4af37] text-[#060d1f] font-semibold px-9 py-4 rounded-full text-base tracking-wide mb-5"
         >
           Build your profile — it's free
           <ChevronRightIcon className="w-4 h-4" />
@@ -1130,7 +1138,7 @@ function ProfileSetup({ onBack, onComplete, initialProfile }) {
   const canProceed = step === 1 ? !!selectedAirport : true;
 
   return (
-    <div className="min-h-screen bg-[#060d1f] font-['Inter',sans-serif] flex flex-col">
+    <div className="min-h-screen bg-[#0a0f1e] font-['DM_Sans',sans-serif] flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-4 px-6 py-5 border-b border-white/5">
         <button
@@ -1188,7 +1196,7 @@ function ProfileSetup({ onBack, onComplete, initialProfile }) {
         <button
           onClick={handleNext}
           disabled={!canProceed}
-          className="w-full flex items-center justify-center gap-2 bg-[#c9a84c] disabled:bg-white/10 disabled:text-white/30 text-[#060d1f] font-semibold py-3.5 rounded-full transition-colors text-sm"
+          className="btn-gold w-full flex items-center justify-center gap-2 bg-[#c9a84c] disabled:bg-white/10 disabled:text-white/30 disabled:shadow-none disabled:transform-none text-[#060d1f] font-semibold py-3.5 rounded-full text-sm"
         >
           {step === 4 ? 'Finish & Start chatting' : 'Continue'}
           <ChevronRightIcon className="w-4 h-4" />
@@ -1246,7 +1254,7 @@ async function getIntelligenceData(client, history, assistantText, profileCtx) {
 
 function MetricCell({ label, value, sub, highlight }) {
   return (
-    <div className="bg-[#060d1f] px-4 py-3">
+    <div className="bg-[#0a0f1e] px-4 py-3">
       <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1">{label}</p>
       <p className={`text-sm font-medium leading-snug ${highlight ? 'text-[#c9a84c]' : 'text-white'}`}>
         {value}
@@ -1259,7 +1267,7 @@ function MetricCell({ label, value, sub, highlight }) {
 function TripSummaryCard({ summary }) {
   if (!summary) return null;
   return (
-    <div className="ml-9 mb-4 rounded-xl border border-[#c9a84c]/30 bg-[#0a1328] overflow-hidden animate-fade-in-up">
+    <div className="ml-9 mb-4 rounded-xl border border-[#c9a84c]/30 bg-[#0d1526] overflow-hidden animate-fade-in-up" style={{ boxShadow: '0 0 24px rgba(201,168,76,0.07)' }}>
       {/* Header */}
       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#c9a84c]/15">
         <span className="text-[#c9a84c] text-xs leading-none">✦</span>
@@ -1312,7 +1320,7 @@ function TripSummaryCard({ summary }) {
 function ChecklistCard({ checklist, onToggleItem }) {
   if (checklist.generating) {
     return (
-      <div className="ml-9 mb-4 rounded-xl border border-white/8 bg-[#0c1628] px-4 py-4 flex items-center gap-3">
+      <div className="ml-9 mb-4 rounded-xl border border-white/8 bg-[#0d1526] px-4 py-4 flex items-center gap-3">
         <div className="flex items-center gap-1">
           <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c]/60 animate-bounce" style={{ animationDelay: '0ms' }} />
           <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c]/60 animate-bounce" style={{ animationDelay: '150ms' }} />
@@ -1325,7 +1333,7 @@ function ChecklistCard({ checklist, onToggleItem }) {
 
   if (checklist.error) {
     return (
-      <div className="ml-9 mb-4 rounded-xl border border-red-900/30 bg-[#0c1628] px-4 py-3">
+      <div className="ml-9 mb-4 rounded-xl border border-red-900/30 bg-[#0d1526] px-4 py-3">
         <p className="text-xs text-red-400/60">Couldn't generate checklist. Try again later.</p>
       </div>
     );
@@ -1336,7 +1344,7 @@ function ChecklistCard({ checklist, onToggleItem }) {
   const total = allItems.length;
 
   return (
-    <div className="ml-9 mb-4 rounded-xl border border-[#c9a84c]/15 bg-[#0c1628] overflow-hidden animate-fade-in-up">
+    <div className="ml-9 mb-4 rounded-xl border border-[#c9a84c]/15 bg-[#0d1526] overflow-hidden animate-fade-in-up">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
         <div className="flex items-center gap-2">
@@ -1402,7 +1410,7 @@ function OverviewTab({ overview }) {
   }
   return (
     <div className="space-y-3">
-      <div className="bg-[#0a1328] border border-white/8 rounded-xl p-4">
+      <div className="card-hover bg-[#0d1526] border border-[#c9a84c]/10 rounded-xl p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1">Destination</p>
@@ -1426,7 +1434,7 @@ function OverviewTab({ overview }) {
       )}
 
       {overview.pointsUsed?.length > 0 && (
-        <div className="bg-[#0a1328] border border-white/8 rounded-xl p-4">
+        <div className="card-hover bg-[#0d1526] border border-[#c9a84c]/10 rounded-xl p-4">
           <p className="text-[10px] text-white/30 uppercase tracking-widest mb-3">Points Being Used</p>
           <div className="space-y-2.5">
             {overview.pointsUsed.map((p, i) => (
@@ -1443,7 +1451,7 @@ function OverviewTab({ overview }) {
       )}
 
       {overview.bestCard && (
-        <div className="bg-[#0a1328] border border-white/8 rounded-xl p-4">
+        <div className="card-hover bg-[#0d1526] border border-[#c9a84c]/10 rounded-xl p-4">
           <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Best Card for Taxes/Fees</p>
           <p className="text-white text-sm font-medium">{overview.bestCard.name}</p>
           {overview.bestCard.reason && (
@@ -1453,7 +1461,7 @@ function OverviewTab({ overview }) {
       )}
 
       {overview.recommendation && (
-        <div className="bg-[#0a1328] border border-[#c9a84c]/20 rounded-xl p-4">
+        <div className="bg-[#0d1526] border border-[#c9a84c]/20 rounded-xl p-4">
           <div className="flex items-center gap-1.5 mb-2">
             <span className="text-[#c9a84c] text-xs leading-none">✦</span>
             <p className="text-[10px] text-[#c9a84c] uppercase tracking-widest font-semibold">Recommendation</p>
@@ -1491,7 +1499,7 @@ function ChecklistTab({ checklist, onToggleItem }) {
       </div>
       <div className="space-y-3">
         {checklist.sections?.map((section) => (
-          <div key={section.title} className="bg-[#0a1328] border border-white/8 rounded-xl p-4">
+          <div key={section.title} className="card-hover bg-[#0d1526] border border-[#c9a84c]/10 rounded-xl p-4">
             <p className="text-[9px] text-white/30 uppercase tracking-widest mb-3">{section.title}</p>
             <div className="space-y-2.5">
               {section.items.map((item) => (
@@ -1528,7 +1536,7 @@ function StrategyTab({ strategy }) {
   return (
     <div className="space-y-3">
       {strategy.transferPartners?.length > 0 && (
-        <div className="bg-[#0a1328] border border-white/8 rounded-xl p-4">
+        <div className="card-hover bg-[#0d1526] border border-[#c9a84c]/10 rounded-xl p-4">
           <p className="text-[10px] text-white/30 uppercase tracking-widest mb-3">Transfer Partners</p>
           <div className="space-y-1.5">
             {strategy.transferPartners.map((p, i) => (
@@ -1542,7 +1550,7 @@ function StrategyTab({ strategy }) {
       )}
 
       {(strategy.pointsToUse || strategy.pointsToSave) && (
-        <div className="bg-[#0a1328] border border-white/8 rounded-xl p-4">
+        <div className="card-hover bg-[#0d1526] border border-[#c9a84c]/10 rounded-xl p-4">
           <p className="text-[10px] text-white/30 uppercase tracking-widest mb-3">Points Allocation</p>
           {strategy.pointsToUse && (
             <div className="mb-3">
@@ -1570,7 +1578,7 @@ function StrategyTab({ strategy }) {
       )}
 
       {strategy.perks?.length > 0 && (
-        <div className="bg-[#0a1328] border border-white/8 rounded-xl p-4">
+        <div className="card-hover bg-[#0d1526] border border-[#c9a84c]/10 rounded-xl p-4">
           <p className="text-[10px] text-white/30 uppercase tracking-widest mb-3">Applicable Perks</p>
           <div className="space-y-1.5">
             {strategy.perks.map((p, i) => (
@@ -1616,15 +1624,15 @@ function TripIntelligencePanel({ intelligence, loading, activeTab, onTabChange, 
             <button
               key={tab.id}
               onClick={() => { onTabChange(tab.id); onClearIndicator(tab.id); }}
-              className={`relative py-3 mr-5 text-sm border-b-2 transition-all ${
+              className={`tab-btn relative py-3 mr-5 text-sm border-b-2 border-transparent ${
                 activeTab === tab.id
-                  ? 'border-[#c9a84c] text-white'
-                  : 'border-transparent text-white/35 hover:text-white/60'
+                  ? 'tab-active text-white'
+                  : 'text-white/35 hover:text-white/65'
               }`}
             >
               {tab.label}
               {newIndicators?.[tab.id] && activeTab !== tab.id && (
-                <span className="absolute -top-0.5 -right-2 w-1.5 h-1.5 rounded-full bg-[#c9a84c]" />
+                <span className="absolute -top-0.5 -right-2 w-1.5 h-1.5 rounded-full bg-[#c9a84c] animate-pulse" />
               )}
             </button>
           ))}
@@ -1641,13 +1649,16 @@ function TripIntelligencePanel({ intelligence, loading, activeTab, onTabChange, 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
         {isEmpty && !loading ? (
-          <div className="flex flex-col items-center justify-center h-full text-center px-6 min-h-[200px]">
-            <div className="w-10 h-10 rounded-full bg-[#c9a84c]/8 border border-[#c9a84c]/15 flex items-center justify-center mb-4">
-              <PlaneIcon className="w-5 h-5 text-[#c9a84c]/30" />
+          <div className="flex flex-col items-center justify-center h-full text-center px-8 min-h-[260px] gap-4">
+            <div className="w-12 h-12 rounded-full bg-[#c9a84c]/8 border border-[#c9a84c]/15 flex items-center justify-center">
+              <PlaneIcon className="w-6 h-6 text-[#c9a84c]/25" />
             </div>
-            <p className="text-white/20 text-sm leading-relaxed max-w-[180px]">
-              Start planning a trip to see your recommendations
-            </p>
+            <div>
+              <p className="text-white/30 text-sm font-['Playfair_Display',serif] mb-1.5">Your trip intelligence</p>
+              <p className="text-white/18 text-xs leading-relaxed max-w-[160px] mx-auto">
+                Start a conversation and Flio will build your strategy here in real time.
+              </p>
+            </div>
           </div>
         ) : (
           <>
@@ -1708,14 +1719,14 @@ const GREETING = "Hi! I'm Flio, your AI travel concierge. Where are you thinking
 
 function TypingIndicator() {
   return (
-    <div className="flex justify-start mb-3">
+    <div className="flex justify-start mb-3 animate-msg-in">
       <div className="w-7 h-7 rounded-full bg-[#c9a84c]/20 border border-[#c9a84c]/30 flex items-center justify-center mr-2 mt-0.5 flex-shrink-0">
         <PlaneIcon className="w-3.5 h-3.5 text-[#c9a84c]" />
       </div>
-      <div className="bg-[#0f1e3d] rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1">
-        <span className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style={{ animationDelay: '0ms' }} />
-        <span className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style={{ animationDelay: '150ms' }} />
-        <span className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style={{ animationDelay: '300ms' }} />
+      <div className="bg-[#111d35] rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1.5">
+        <span className="typing-dot w-1.5 h-1.5 rounded-full bg-[#c9a84c]/60" />
+        <span className="typing-dot w-1.5 h-1.5 rounded-full bg-[#c9a84c]/60" />
+        <span className="typing-dot w-1.5 h-1.5 rounded-full bg-[#c9a84c]/60" />
       </div>
     </div>
   );
@@ -1724,7 +1735,7 @@ function TypingIndicator() {
 function ChatBubble({ message }) {
   const isUser = message.role === 'user';
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-3`}>
+    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-3 animate-msg-in`}>
       {!isUser && (
         <div className="w-7 h-7 rounded-full bg-[#c9a84c]/20 border border-[#c9a84c]/30 flex items-center justify-center mr-2 mt-0.5 flex-shrink-0">
           <PlaneIcon className="w-3.5 h-3.5 text-[#c9a84c]" />
@@ -1735,7 +1746,7 @@ function ChatBubble({ message }) {
           className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
             isUser
               ? 'bg-[#c9a84c] text-[#060d1f] font-medium rounded-br-sm'
-              : 'bg-[#0f1e3d] text-white/90 rounded-bl-sm'
+              : 'bg-[#111d35] text-white/90 rounded-bl-sm border border-white/[0.06]'
           }`}
         >
           {message.text}
@@ -1944,19 +1955,19 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
   };
 
   return (
-    <div className="h-screen bg-[#060d1f] font-['Inter',sans-serif] flex flex-col relative overflow-hidden">
+    <div className="h-screen bg-[#0a0f1e] font-['DM_Sans',sans-serif] flex flex-col relative overflow-hidden">
 
       {/* Sidebar backdrop */}
       {sidebarOpen && (
         <div
-          className="absolute inset-0 bg-black/60 z-20"
+          className="absolute inset-0 bg-black/50 glass-panel z-20"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar panel */}
       <div
-        className={`absolute left-0 top-0 bottom-0 w-72 bg-[#040b1a] border-r border-white/8 z-30 flex flex-col transition-transform duration-300 ease-in-out ${
+        className={`absolute left-0 top-0 bottom-0 w-72 bg-[#070d1c] border-r border-white/8 z-30 flex flex-col transition-transform duration-300 ease-in-out ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -1982,9 +1993,14 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
 
         <div className="flex-1 overflow-y-auto py-2">
           {trips.length === 0 ? (
-            <p className="text-white/25 text-xs text-center mt-8 px-4 leading-relaxed">
-              No saved trips yet.<br />Start chatting to save your first trip.
-            </p>
+            <div className="flex flex-col items-center mt-10 px-4 text-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-[#c9a84c]/8 border border-[#c9a84c]/12 flex items-center justify-center">
+                <PlaneIcon className="w-4 h-4 text-[#c9a84c]/30" />
+              </div>
+              <p className="text-white/25 text-xs leading-relaxed">
+                No trips saved yet.<br />Your conversations auto-save here.
+              </p>
+            </div>
           ) : (
             trips.map((trip) => (
               <TripHistoryItem
@@ -2000,7 +2016,7 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
       </div>
 
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-4 border-b border-white/5 bg-[#060d1f] flex-shrink-0 z-10">
+      <div className="flex items-center gap-3 px-4 py-4 border-b border-white/5 bg-[#0a0f1e] flex-shrink-0 z-10">
         <button onClick={onBack} className="text-white/40 hover:text-white transition-colors">
           <ArrowLeftIcon className="w-5 h-5" />
         </button>
@@ -2058,8 +2074,8 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
           </div>
 
           {/* Input */}
-          <div className="px-4 py-4 border-t border-white/5 bg-[#060d1f] flex-shrink-0">
-            <div className="flex items-center gap-3 bg-[#0f1e3d] border border-white/10 rounded-full px-4 py-2.5">
+          <div className="px-4 py-4 border-t border-white/5 bg-[#0a0f1e] flex-shrink-0">
+            <div className="flex items-center gap-3 bg-[#111d35] border border-white/10 rounded-full px-4 py-2.5">
               <input
                 type="text"
                 value={input}
@@ -2067,7 +2083,7 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
                 onKeyDown={onKeyDown}
                 placeholder="Ask Flio anything..."
                 disabled={isStreaming}
-                className="flex-1 bg-transparent text-white text-sm placeholder-white/25 focus:outline-none disabled:opacity-50"
+                className="flex-1 bg-transparent text-white text-sm placeholder-white/25 outline-none disabled:opacity-50"
               />
               <button
                 onClick={send}
@@ -2084,7 +2100,7 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
         <div className="hidden md:block w-px bg-white/[0.06] flex-shrink-0" />
 
         {/* Right: Trip Intelligence Panel (desktop only) */}
-        <div className="hidden md:flex flex-col overflow-hidden md:w-[40%] bg-[#060d1f]">
+        <div className="hidden md:flex flex-col overflow-hidden md:w-[40%] bg-[#0a0f1e]">
           <TripIntelligencePanel {...intelligencePanelProps} />
         </div>
       </div>
@@ -2092,8 +2108,8 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
       {/* Mobile: intelligence drawer */}
       {mobileIntelOpen && (
         <div className="md:hidden fixed inset-0 z-40 flex flex-col justify-end">
-          <div className="absolute inset-0 bg-black/60" onClick={() => setMobileIntelOpen(false)} />
-          <div className="relative bg-[#060d1f] border-t border-white/8 rounded-t-2xl flex flex-col" style={{ maxHeight: '80vh' }}>
+          <div className="absolute inset-0 bg-black/50 glass-panel" onClick={() => setMobileIntelOpen(false)} />
+          <div className="relative bg-[#0a0f1e] border-t border-white/8 rounded-t-2xl flex flex-col" style={{ maxHeight: '80vh' }}>
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/8 flex-shrink-0">
               <span className="text-white text-sm font-medium">Trip Intelligence</span>
               <button onClick={() => setMobileIntelOpen(false)} className="text-white/40 hover:text-white transition-colors">
@@ -2119,19 +2135,19 @@ function ReadyScreen({ profile }) {
   const activePrefs = Object.values(prefs).filter(Boolean);
 
   return (
-    <div className="min-h-screen bg-[#060d1f] font-['Inter',sans-serif] flex flex-col items-center justify-center px-6 text-center animate-fade-in-up">
+    <div className="min-h-screen bg-[#0a0f1e] font-['DM_Sans',sans-serif] flex flex-col items-center justify-center px-6 text-center animate-fade-in-up">
       {/* Icon */}
       <div className="w-16 h-16 rounded-full bg-[#c9a84c]/15 border border-[#c9a84c]/30 flex items-center justify-center mb-8">
         <PlaneIcon className="w-7 h-7 text-[#c9a84c]" />
       </div>
 
-      <h2 className="text-3xl font-light text-white mb-2">You're all set.</h2>
+      <h2 className="text-3xl text-white mb-2 font-['Playfair_Display',serif] font-normal">You're all set.</h2>
       <p className="text-white/40 text-sm mb-10 max-w-xs leading-relaxed">
         Flio is ready with your profile. Ask anything about flights, hotels, or points.
       </p>
 
       {/* Profile summary card */}
-      <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-5 w-full max-w-sm text-left space-y-3 mb-10">
+      <div className="bg-[#0d1526] border border-[#c9a84c]/12 rounded-2xl p-5 w-full max-w-sm text-left space-y-3 mb-10">
         {profile.homeAirport && (
           <div className="flex items-center gap-3">
             <span className="text-[#c9a84c] text-xs font-mono font-bold w-10 flex-shrink-0">{profile.homeAirport.code}</span>
@@ -2183,17 +2199,17 @@ function cppDollar(balance, cpp) {
 function WalletTile({ name, balance, currency, cpp, icon }) {
   const val = cppDollar(balance, cpp);
   return (
-    <div className="bg-[#0a1328] border border-white/8 rounded-xl p-4">
+    <div className="bg-[#0d1526] border border-[#c9a84c]/10 rounded-xl p-4 card-hover">
       <div className="flex items-center gap-2.5 mb-3">
         {icon}
         <span className="text-white/60 text-xs leading-tight">{name}</span>
       </div>
       <p className="text-white text-xl font-light leading-none mb-0.5">
-        {balance > 0 ? balance.toLocaleString() : '—'}
+        <AnimatedNumber value={balance} />
       </p>
       <p className="text-white/25 text-[10px] mb-1.5">{currency}</p>
       {balance > 0 && (
-        <p className="text-[#c9a84c] text-xs font-medium">~${val.toLocaleString()}</p>
+        <p className="text-[#c9a84c] text-xs font-medium">~$<AnimatedNumber value={val} /></p>
       )}
     </div>
   );
@@ -2312,7 +2328,7 @@ function CreditsSection({ profile, usedCredits, onToggle }) {
                 return (
                   <div
                     key={credit.id}
-                    className={`flex items-center justify-between bg-[#0a1328] border rounded-xl px-4 py-3 transition-all ${
+                    className={`flex items-center justify-between bg-[#0d1526] border rounded-xl px-4 py-3 transition-all ${
                       used ? 'border-white/5 opacity-40' : 'border-white/10'
                     }`}
                   >
@@ -2382,7 +2398,7 @@ function SettingsSection({ profile, onSave }) {
       <div className="space-y-3">
 
         {/* Home airport */}
-        <div className="bg-[#0a1328] border border-white/10 rounded-xl p-4">
+        <div className="card-hover bg-[#0d1526] border border-[#c9a84c]/12 rounded-xl p-4">
           <div className="flex items-center justify-between mb-2">
             <p className="text-[10px] text-white/30 uppercase tracking-widest">Home Airport</p>
             {editing !== 'airport'
@@ -2397,11 +2413,11 @@ function SettingsSection({ profile, onSave }) {
                   type="text"
                   value={airportQuery}
                   onChange={(e) => { setAirportQuery(e.target.value); setDraftAirport(null); }}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-white/20 focus:outline-none focus:border-[#c9a84c]/50 transition-all"
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-white/20 input-gold focus:outline-none transition-all"
                   placeholder="Search city or code…"
                 />
                 {filteredAirports.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-[#0f1e3d] border border-white/10 rounded-xl overflow-hidden z-10 shadow-2xl">
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-[#111d35] border border-white/10 rounded-xl overflow-hidden z-10 shadow-2xl">
                     {filteredAirports.map((a) => (
                       <button key={a.code} onClick={() => { setDraftAirport(a); setAirportQuery(`${a.city} (${a.code})`); }}
                         className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-white/5 transition-colors text-left border-b border-white/5 last:border-0">
@@ -2425,7 +2441,7 @@ function SettingsSection({ profile, onSave }) {
         </div>
 
         {/* Cabin preference */}
-        <div className="bg-[#0a1328] border border-white/10 rounded-xl p-4">
+        <div className="card-hover bg-[#0d1526] border border-[#c9a84c]/12 rounded-xl p-4">
           <div className="flex items-center justify-between mb-2">
             <p className="text-[10px] text-white/30 uppercase tracking-widest">Cabin Preference</p>
             {editing !== 'cabin'
@@ -2447,7 +2463,7 @@ function SettingsSection({ profile, onSave }) {
         </div>
 
         {/* Travel style */}
-        <div className="bg-[#0a1328] border border-white/10 rounded-xl p-4">
+        <div className="card-hover bg-[#0d1526] border border-[#c9a84c]/12 rounded-xl p-4">
           <div className="flex items-center justify-between mb-2">
             <p className="text-[10px] text-white/30 uppercase tracking-widest">Travel Style</p>
             {editing !== 'style'
@@ -2483,7 +2499,7 @@ function ProfileDashboard({ profile, usedCredits, onToggleCredit, onSave, onBack
   ];
 
   return (
-    <div className="min-h-screen bg-[#060d1f] font-['Inter',sans-serif] flex flex-col">
+    <div className="min-h-screen bg-[#0a0f1e] font-['DM_Sans',sans-serif] flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-4 px-6 py-5 border-b border-white/5">
         <button onClick={onBack} className="text-white/40 hover:text-white transition-colors">
@@ -2501,10 +2517,8 @@ function ProfileDashboard({ profile, usedCredits, onToggleCredit, onSave, onBack
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={`py-3 mr-6 text-sm border-b-2 transition-all ${
-              tab === t.id
-                ? 'border-[#c9a84c] text-white'
-                : 'border-transparent text-white/35 hover:text-white/60'
+            className={`tab-btn py-3 mr-6 text-sm border-b-2 border-transparent ${
+              tab === t.id ? 'tab-active text-white' : 'text-white/35 hover:text-white/65'
             }`}
           >
             {t.label}
@@ -2525,6 +2539,24 @@ function ProfileDashboard({ profile, usedCredits, onToggleCredit, onSave, onBack
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
+
+function AnimatedNumber({ value, duration = 1100 }) {
+  const [displayed, setDisplayed] = useState(0);
+  useEffect(() => {
+    if (!value || value === 0) return;
+    let start = null;
+    const step = (ts) => {
+      if (!start) start = ts;
+      const elapsed = ts - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplayed(Math.round(eased * value));
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, [value, duration]);
+  return <>{value > 0 ? displayed.toLocaleString() : '—'}</>;
+}
 
 function now() {
   return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -2607,6 +2639,8 @@ export default function App() {
 
   return (
     <>
+      {/* Noise texture overlay — sits above everything, pointer-events-none */}
+      <div className="noise-overlay" aria-hidden="true" />
       {screen === 'landing' && (
         <LandingPage
           onGetStarted={() => setScreen('profile')}

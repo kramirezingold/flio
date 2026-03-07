@@ -2,25 +2,158 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
+/* ── Base ──────────────────────────────────────────────────────────────── */
 body {
   margin: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-family: 'DM Sans', sans-serif;
+  background-color: #0a0f1e;
 }
 
+/* ── Custom scrollbars ─────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 3px;
+  height: 3px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(201, 168, 76, 0.18);
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(201, 168, 76, 0.35);
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(201, 168, 76, 0.18) transparent;
+}
+
+/* ── Noise overlay ─────────────────────────────────────────────────────── */
+.noise-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 300px 300px;
+}
+
+/* ── Animations ────────────────────────────────────────────────────────── */
+
+/* Legacy fade-in-up (used in DemoChat and other places) */
 @keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0);    }
 }
-
 .animate-fade-in-up {
   animation: fadeInUp 0.4s ease forwards;
+}
+
+/* Chat message slide-in */
+@keyframes msgSlideIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+.animate-msg-in {
+  animation: msgSlideIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Staggered hero word/line animation */
+@keyframes wordFadeIn {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+.animate-word {
+  display: inline-block;
+  opacity: 0;
+  animation: wordFadeIn 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Typing indicator — smooth pulse instead of bounce */
+@keyframes typingPulse {
+  0%, 100% { opacity: 0.2; transform: scale(0.8);  }
+  50%       { opacity: 1;   transform: scale(1.05); }
+}
+.typing-dot {
+  animation: typingPulse 1.4s ease-in-out infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.22s; }
+.typing-dot:nth-child(3) { animation-delay: 0.44s; }
+
+/* Number count-up */
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+/* ── Gold button glow ──────────────────────────────────────────────────── */
+.btn-gold {
+  transition: transform 0.22s ease, box-shadow 0.22s ease, background-color 0.18s ease;
+}
+.btn-gold:hover {
+  transform: scale(1.025);
+  box-shadow: 0 0 28px rgba(201, 168, 76, 0.38), 0 6px 20px rgba(0, 0, 0, 0.45);
+}
+.btn-gold:active {
+  transform: scale(0.98);
+}
+
+/* Ghost / outline button */
+.btn-ghost {
+  transition: color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+.btn-ghost:hover {
+  box-shadow: 0 0 14px rgba(201, 168, 76, 0.12);
+}
+
+/* ── Card surfaces ─────────────────────────────────────────────────────── */
+.card-hover {
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+}
+.card-hover:hover {
+  border-color: rgba(201, 168, 76, 0.28) !important;
+  box-shadow: 0 0 0 1px rgba(201, 168, 76, 0.06) inset, 0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* ── Input gold focus ring ─────────────────────────────────────────────── */
+.input-gold {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.input-gold:focus {
+  outline: none;
+  border-color: rgba(201, 168, 76, 0.55) !important;
+  box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.09);
+}
+
+/* ── Tab active underline animation ───────────────────────────────────── */
+.tab-btn {
+  position: relative;
+  transition: color 0.2s ease;
+}
+.tab-btn::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #c9a84c;
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: 1px;
+}
+.tab-btn.tab-active::after {
+  transform: scaleX(1);
+}
+
+/* ── Glassmorphism panels ──────────────────────────────────────────────── */
+.glass-panel {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
