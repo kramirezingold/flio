@@ -646,6 +646,306 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
       <div className="pt-20 pb-16">
         <DemoChat onGetStarted={onGetStarted} />
       </div>
+
+      {/* How It Works */}
+      <div className="px-6 pb-32 max-w-5xl mx-auto w-full">
+        <div className="text-center mb-14">
+          <p className="text-[10px] text-[#c9a84c] uppercase tracking-widest mb-3">How it works</p>
+          <h2 className="text-3xl md:text-4xl font-light text-white">Smart travel advice in seconds.</h2>
+        </div>
+        <div className="relative flex flex-col md:flex-row gap-4 md:gap-0">
+          <div className="hidden md:block absolute top-10 left-[calc(16.67%+1rem)] right-[calc(16.67%+1rem)] h-px bg-gradient-to-r from-[#c9a84c]/20 via-[#c9a84c]/40 to-[#c9a84c]/20 z-0" />
+          {[
+            { num: '01', title: 'Build your profile', desc: 'Add your home airport, loyalty programs with balances, and travel credit cards. Takes 2 minutes.' },
+            { num: '02', title: 'Describe your trip', desc: 'Tell Flio where you want to go in plain English. No forms, no dropdowns, just talk.' },
+            { num: '03', title: 'Get your plan', desc: 'Flio tells you exactly which points to use, which card to pay with, and in what order to book.' },
+          ].map((step, i) => (
+            <div key={step.num} className="relative z-10 flex-1 flex md:flex-col md:items-center gap-5 md:gap-0 md:px-6">
+              {i < 2 && (
+                <div className="hidden md:flex absolute -right-3 top-8 z-20 items-center justify-center w-6 h-6">
+                  <ChevronRightIcon className="w-4 h-4 text-[#c9a84c]/50" />
+                </div>
+              )}
+              <div className="group flex-1 md:flex-none md:w-full bg-[#0a1328] border border-white/8 hover:border-[#c9a84c]/30 rounded-2xl p-6 transition-all duration-300 cursor-default">
+                <p className="text-[#c9a84c] text-3xl font-light tracking-tight mb-4">{step.num}</p>
+                <p className="text-white font-semibold text-base mb-2">{step.title}</p>
+                <p className="text-white/45 text-sm leading-relaxed">{step.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Points Portfolio Preview */}
+      <div className="px-6 pb-32 max-w-2xl mx-auto w-full">
+        {/* Section header */}
+        <div className="text-center mb-10">
+          <p className="text-[10px] text-[#c9a84c] uppercase tracking-widest mb-3">Your Travel Wallet</p>
+          <h2 className="text-3xl md:text-4xl font-light text-white">See exactly what your points are worth.</h2>
+        </div>
+
+        {/* Preview card */}
+        <div
+          className="relative rounded-2xl border border-white/10 bg-[#0a1328] overflow-hidden"
+          style={{ boxShadow: '0 0 0 1px rgba(201,168,76,0.08), 0 0 80px rgba(201,168,76,0.07), 0 0 160px rgba(201,168,76,0.04)' }}
+        >
+          {/* Card header */}
+          <div className="flex items-center justify-between px-6 py-5 border-b border-white/5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-full bg-[#c9a84c]/15 border border-[#c9a84c]/30 flex items-center justify-center">
+                <PlaneIcon className="w-3.5 h-3.5 text-[#c9a84c]" />
+              </div>
+              <span className="text-white font-medium text-sm">Your Travel Wallet</span>
+            </div>
+            <div className="flex items-center gap-1.5 bg-[#c9a84c]/10 border border-[#c9a84c]/25 rounded-full px-3 py-1">
+              <span className="text-[#c9a84c] text-xs font-semibold">$4,847 in travel value</span>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="px-6 pt-5 pb-6 space-y-6">
+            {/* Loyalty programs */}
+            <div>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-3">Loyalty Programs</p>
+              <div className="space-y-3.5">
+                {[
+                  { initials: 'WH', bg: '#111111', name: 'World of Hyatt', pts: '42,000', val: '$756' },
+                  { initials: 'UR', bg: '#003087', name: 'Chase Ultimate Rewards', pts: '180,000', val: '$3,690' },
+                  { initials: 'UA', bg: '#1e3a8a', name: 'United MileagePlus', pts: '28,000', val: '$392' },
+                ].map((p) => (
+                  <div key={p.name} className="flex items-center gap-3">
+                    <div
+                      style={{ backgroundColor: p.bg }}
+                      className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center flex-shrink-0"
+                    >
+                      <span className="text-white text-[9px] font-bold">{p.initials}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white/80 text-sm leading-tight">{p.name}</p>
+                      <p className="text-white/30 text-xs mt-0.5">{p.pts} pts</p>
+                    </div>
+                    <p className="text-[#c9a84c] text-sm font-semibold flex-shrink-0">{p.val}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Credit card perks */}
+            <div>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-3">Annual Credits Remaining</p>
+              <div className="space-y-2">
+                {[
+                  {
+                    name: 'Chase Sapphire Reserve',
+                    credit: '$300 travel credit',
+                    cardBg: 'linear-gradient(135deg, #1c1c1e 0%, #2e2e30 100%)',
+                    accent: '#c9a84c',
+                    issuer: 'CHASE',
+                  },
+                  {
+                    name: 'Amex Platinum',
+                    credit: '$200 hotel credit',
+                    cardBg: 'linear-gradient(135deg, #a0a8b8 0%, #c8ceda 50%, #8a9099 100%)',
+                    accent: '#3a3a3a',
+                    issuer: 'AMEX',
+                  },
+                ].map((c) => (
+                  <div key={c.name} className="flex items-center gap-3 bg-[#060d1f] rounded-xl px-4 py-3">
+                    <div
+                      style={{ background: c.cardBg }}
+                      className="w-10 h-6 rounded-md flex items-center justify-center flex-shrink-0"
+                    >
+                      <span style={{ color: c.accent }} className="text-[7px] font-bold tracking-wider opacity-80">{c.issuer}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white/70 text-xs leading-tight">{c.name}</p>
+                      <p className="text-white/35 text-[11px] mt-0.5">{c.credit}</p>
+                    </div>
+                    <span className="text-emerald-400 text-[10px] font-medium bg-emerald-400/10 border border-emerald-400/20 px-2 py-0.5 rounded-full flex-shrink-0">
+                      Available
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Frosted unlock overlay */}
+          <div className="absolute bottom-0 left-0 right-0 h-56 flex flex-col items-center justify-end pb-8 gap-2.5"
+            style={{ background: 'linear-gradient(to bottom, transparent 0%, rgba(10,19,40,0.85) 35%, rgba(10,19,40,0.97) 60%, #0a1328 100%)' }}
+          >
+            <p className="text-white/35 text-xs tracking-wide">Your real balances. Your actual credits.</p>
+            <button
+              onClick={onGetStarted}
+              className="flex items-center gap-2 bg-[#c9a84c] hover:bg-[#b8973d] text-[#060d1f] font-semibold px-6 py-2.5 rounded-full transition-colors text-sm tracking-wide"
+            >
+              Build your profile to see yours
+              <ChevronRightIcon className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* What Flio Knows */}
+      <div className="px-6 pb-32 max-w-4xl mx-auto w-full">
+        {/* Section header */}
+        <div className="text-center mb-4">
+          <p className="text-[10px] text-[#c9a84c] uppercase tracking-widest mb-3">Works With</p>
+          <h2 className="text-3xl md:text-4xl font-light text-white mb-3">Built around your actual wallet.</h2>
+          <p className="text-white/40 text-sm max-w-lg mx-auto leading-relaxed">
+            Flio knows the earning rates, transfer partners, redemption sweet spots, and annual credits for every program listed.
+          </p>
+        </div>
+
+        <div className="space-y-8 mt-10">
+          {/* Loyalty Programs */}
+          <div>
+            <p className="text-[10px] text-white/30 uppercase tracking-widest mb-4">Loyalty Programs</p>
+            <div className="flex flex-wrap gap-2.5">
+              {[
+                { name: 'United MileagePlus',        emoji: '✈️' },
+                { name: 'Delta SkyMiles',             emoji: '✈️' },
+                { name: 'American AAdvantage',        emoji: '✈️' },
+                { name: 'Alaska Mileage Plan',        emoji: '✈️' },
+                { name: 'Southwest Rapid Rewards',    emoji: '✈️' },
+                { name: 'World of Hyatt',             emoji: '🏨' },
+                { name: 'Marriott Bonvoy',            emoji: '🏨' },
+                { name: 'Hilton Honors',              emoji: '🏨' },
+              ].map((item) => (
+                <div
+                  key={item.name}
+                  className="group flex items-center gap-2 bg-[#0a1328] border border-white/8 hover:border-[#c9a84c]/35 hover:bg-[#c9a84c]/[0.04] rounded-full px-4 py-2 transition-all duration-200 cursor-default"
+                  style={{ '--tw-shadow': '0 0 0 0 transparent' }}
+                >
+                  <span className="text-sm leading-none">{item.emoji}</span>
+                  <span className="text-white/65 group-hover:text-white/90 text-sm transition-colors">{item.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Credit Cards */}
+          <div>
+            <p className="text-[10px] text-white/30 uppercase tracking-widest mb-4">Credit Cards</p>
+            <div className="flex flex-wrap gap-2.5">
+              {[
+                { name: 'Chase Sapphire Reserve',     emoji: '💳' },
+                { name: 'Chase Sapphire Preferred',   emoji: '💳' },
+                { name: 'Amex Platinum',              emoji: '💳' },
+                { name: 'Amex Gold',                  emoji: '💳' },
+                { name: 'Capital One Venture X',      emoji: '💳' },
+                { name: 'Citi Premier',               emoji: '💳' },
+              ].map((item) => (
+                <div
+                  key={item.name}
+                  className="group flex items-center gap-2 bg-[#0a1328] border border-white/8 hover:border-[#c9a84c]/35 hover:bg-[#c9a84c]/[0.04] rounded-full px-4 py-2 transition-all duration-200 cursor-default"
+                >
+                  <span className="text-sm leading-none">{item.emoji}</span>
+                  <span className="text-white/65 group-hover:text-white/90 text-sm transition-colors">{item.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* The Problem */}
+      <div className="px-6 pb-32 max-w-4xl mx-auto w-full">
+        {/* Section header */}
+        <div className="text-center mb-12">
+          <p className="text-[10px] text-[#c9a84c] uppercase tracking-widest mb-3">The Difference</p>
+          <h2 className="text-3xl md:text-4xl font-light text-white mb-3">Stop leaving money on the table.</h2>
+          <p className="text-white/40 text-sm max-w-md mx-auto leading-relaxed">
+            The average traveler with premium cards leaves $1,200+ in unused value on the table every year.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Without Flio */}
+          <div className="bg-red-950/20 border border-red-900/25 rounded-2xl p-6">
+            <div className="flex items-center gap-2.5 mb-6">
+              <div className="w-5 h-5 rounded-full bg-red-900/50 border border-red-700/40 flex items-center justify-center flex-shrink-0">
+                <span className="text-red-400 text-[10px] font-bold leading-none">✕</span>
+              </div>
+              <span className="text-red-400/80 text-sm font-medium tracking-wide">Without Flio</span>
+            </div>
+            <div className="space-y-4">
+              {[
+                'Booking through Expedia and losing all your miles',
+                'Using the wrong credit card and missing 3x points',
+                'Letting $300 in annual travel credits expire unused',
+                'Transferring points before checking award availability',
+                'Paying cash for a hotel your card covers for free',
+              ].map((item) => (
+                <div key={item} className="flex items-start gap-3">
+                  <span className="text-red-700/60 mt-0.5 flex-shrink-0 text-xs leading-5">✕</span>
+                  <p className="text-white/45 text-sm leading-relaxed">{item}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* With Flio */}
+          <div className="bg-[#c9a84c]/[0.06] border border-[#c9a84c]/20 rounded-2xl p-6">
+            <div className="flex items-center gap-2.5 mb-6">
+              <div className="w-5 h-5 rounded-full bg-[#c9a84c]/20 border border-[#c9a84c]/35 flex items-center justify-center flex-shrink-0">
+                <span className="text-[#c9a84c] text-[10px] font-bold leading-none">✓</span>
+              </div>
+              <span className="text-[#c9a84c]/80 text-sm font-medium tracking-wide">With Flio</span>
+            </div>
+            <div className="space-y-4">
+              {[
+                'Book direct, earn elite miles, and hit status faster',
+                'Always know which card earns the most for each purchase',
+                'Track every credit across every card automatically',
+                'Check award space first, then transfer instantly',
+                'Know exactly which perks apply before you book',
+              ].map((item) => (
+                <div key={item} className="flex items-start gap-3">
+                  <span className="text-[#c9a84c]/60 mt-0.5 flex-shrink-0 text-xs leading-5">✓</span>
+                  <p className="text-white/75 text-sm leading-relaxed">{item}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* CTA Banner */}
+      <div className="relative w-full px-6 py-32 flex flex-col items-center text-center overflow-hidden">
+        {/* Radial gold glow */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse 70% 50% at 50% 50%, rgba(201,168,76,0.09) 0%, transparent 70%)' }}
+        />
+        <h2 className="relative text-4xl md:text-6xl font-light text-white leading-tight tracking-tight max-w-2xl mb-5">
+          Your points are worth more than you think.
+        </h2>
+        <p className="relative text-white/45 text-base md:text-lg max-w-sm mb-10 leading-relaxed">
+          Most travelers leave $1,200+ on the table every year. Flio helps you claim it.
+        </p>
+        <button
+          onClick={onGetStarted}
+          className="relative flex items-center gap-2 bg-[#c9a84c] hover:bg-[#b8973d] text-[#060d1f] font-semibold px-9 py-4 rounded-full transition-colors text-base tracking-wide mb-5"
+        >
+          Build your profile — it's free
+          <ChevronRightIcon className="w-4 h-4" />
+        </button>
+        <p className="relative text-white/20 text-xs tracking-wide">
+          No account required. Your data stays on your device.
+        </p>
+      </div>
+
+      {/* Page footer */}
+      <footer className="border-t border-white/5 px-6 py-10 flex flex-col items-center gap-2 text-center">
+        <div className="flex items-center gap-2 mb-1">
+          <PlaneIcon className="w-4 h-4 text-[#c9a84c]" />
+          <span className="text-white font-semibold tracking-widest text-sm uppercase">Flio</span>
+        </div>
+        <p className="text-white/30 text-xs">Your personal AI travel concierge</p>
+        <p className="text-white/18 text-xs">Built for travelers who want more from every trip.</p>
+      </footer>
+
     </div>
   );
 }
