@@ -711,8 +711,14 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
           ))}
         </div>
 
+        {/* Bottom fade — blends hero glow into the next section */}
+        <div
+          className="absolute bottom-0 left-0 right-0 h-40 pointer-events-none"
+          style={{ background: 'linear-gradient(to bottom, transparent 0%, #060d1f 100%)' }}
+        />
+
         {/* Scroll indicator */}
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 animate-bounce">
+        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-1.5 animate-bounce">
           <span className="text-white/20 text-[9px] uppercase tracking-[0.18em]">Scroll</span>
           <ChevronDownIcon className="w-4 h-4 text-[#c9a84c]/40" />
         </div>
