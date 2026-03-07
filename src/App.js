@@ -1536,6 +1536,54 @@ async function getIntelligenceData(client, history, assistantText, profileCtx) {
   }
 }
 
+async function getFlightData(client, messages) {
+  try {
+    const history = messages
+      .filter((m) => m.text)
+      .map((m) => ({ role: m.role, content: m.text }));
+    const response = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1500,
+      messages: [
+        ...history,
+        {
+          role: 'user',
+          content:
+            'Based on this trip conversation, generate 3 realistic business class flight options as JSON. Return ONLY a JSON array with no other text. Each object should have: airline, flightType, route, departure, arrival, duration, stops, stopCity, pointsCost, pointsProgram, cashPrice, badge (one of: Best Value, Fastest, Recommended), destinationCity, destinationCountry. Use realistic airlines and times for this route.',
+        },
+      ],
+    });
+    const raw = response.content[0].text
+      .trim()
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/\s*```$/, '')
+      .trim();
+    return JSON.parse(raw);
+  } catch (err) {
+    console.error('[Flio flights error]', err);
+    return null;
+  }
+}
+
+function getAwardSearchUrl(airline) {
+  const a = (airline ?? '').toLowerCase();
+  if (a.includes('united')) return 'https://www.united.com/en/us/flight-search/book-a-flight';
+  if (a.includes('american')) return 'https://www.aa.com/booking/find-flights';
+  if (a.includes('delta')) return 'https://www.delta.com/us/en/flight-search/book-a-flight';
+  if (a.includes('lufthansa')) return 'https://www.miles-and-more.com/row/en/use/flight-reward/redeem.html';
+  if (a.includes('air france') || a.includes('klm')) return 'https://www.flyingblue.com/en/spend/flights/reward-flights';
+  if (a.includes('british')) return 'https://www.britishairways.com/travel/redeem/execclub/_gf/en_us';
+  if (a.includes('emirates')) return 'https://www.emirates.com/us/english/skyrewards/';
+  if (a.includes('singapore')) return 'https://www.singaporeair.com/en_UK/us/plan-travel/krisflyer/use-miles/';
+  if (a.includes('turkish')) return 'https://www.turkishairlines.com/en-us/miles-and-smiles/';
+  if (a.includes('swiss') || a.includes('austrian')) return 'https://www.miles-and-more.com/row/en/use/flight-reward/redeem.html';
+  if (a.includes('cathay')) return 'https://www.cathaypacific.com/cx/en_US/asia-miles/use-miles/flights.html';
+  if (a.includes('ana')) return 'https://www.ana.co.jp/en/us/amc/';
+  if (a.includes('japan') || a.includes('jal')) return 'https://www.jal.com/en/jalmileagebank/guide/award/';
+  if (a.includes('avianca') || a.includes('lifemiles')) return 'https://www.lifemiles.com/mer/web/exchange/flight';
+  return 'https://www.google.com/flights';
+}
+
 // ── Trip Intelligence Panel ─────────────────────────────────────────────────
 
 function buildTripPlanText(intelligence) {
@@ -1732,6 +1780,142 @@ async function downloadTripPDF(intelligence) {
   const date = (overview?.dates ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   const filename = `flio-${dest}${date ? '-' + date : ''}.pdf`;
   doc.save(filename);
+}
+
+function FlightCard({ flight }) {
+  const [imgError, setImgError] = useState(false);
+  const imgUrl = `https://source.unsplash.com/600x200/?${encodeURIComponent(flight.destinationCity)},${encodeURIComponent(flight.destinationCountry)},cityscape`;
+
+  const badgeColors = {
+    'Best Value': '#c9a84c',
+    'Fastest': '#60a5fa',
+    'Recommended': '#34d399',
+  };
+  const badgeColor = badgeColors[flight.badge] ?? '#c9a84c';
+  const awardUrl = getAwardSearchUrl(flight.airline);
+
+  const [origin, dest] = (flight.route ?? '').split('→').map((s) => s.trim());
+  const stopsLabel = flight.stops === 0
+    ? 'Nonstop'
+    : `${flight.stops} stop${flight.stops !== 1 ? 's' : ''}${flight.stopCity ? ` via ${flight.stopCity}` : ''}`;
+
+  return (
+    <div className="rounded-2xl overflow-hidden border border-white/[0.08] bg-[#0d1526]">
+      {/* Destination photo */}
+      <div className="relative h-32 overflow-hidden flex-shrink-0">
+        {!imgError ? (
+          <img
+            src={imgUrl}
+            alt={flight.destinationCity}
+            className="w-full h-full object-cover"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-[#111d35] to-[#0d1526]" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0d1526]/75 to-transparent pointer-events-none" />
+        {/* Badge */}
+        <div
+          className="absolute top-3 right-3 text-[10px] font-semibold px-2.5 py-1 rounded-full"
+          style={{ backgroundColor: `${badgeColor}22`, color: badgeColor, border: `1px solid ${badgeColor}50` }}
+        >
+          {flight.badge}
+        </div>
+        {/* Destination label */}
+        <div className="absolute bottom-2.5 left-4">
+          <p className="text-white/80 text-xs font-medium">{flight.destinationCity}, {flight.destinationCountry}</p>
+        </div>
+      </div>
+
+      {/* Details */}
+      <div className="px-4 pt-3 pb-4">
+        {/* Airline */}
+        <p className="text-white/85 text-sm font-medium mb-2">{flight.airline}</p>
+
+        {/* Route + stops */}
+        <div className="flex items-center gap-1.5 mb-2">
+          <span className="text-white/75 text-sm font-mono tracking-wide">{origin}</span>
+          <span className="text-white/25 text-xs">→</span>
+          <span className="text-white/75 text-sm font-mono tracking-wide">{dest}</span>
+          <span className="text-white/30 text-[11px] ml-1">· {stopsLabel}</span>
+        </div>
+
+        {/* Times + duration */}
+        <div className="flex items-center gap-1.5 text-xs text-white/45 mb-3">
+          <span>{flight.departure}</span>
+          <span className="text-white/20">→</span>
+          <span>{flight.arrival}</span>
+          <span className="text-white/25">·</span>
+          <span>{flight.duration}</span>
+        </div>
+
+        {/* Points + cash */}
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <span className="text-[#c9a84c] text-sm font-semibold">
+              {typeof flight.pointsCost === 'number' ? flight.pointsCost.toLocaleString() : flight.pointsCost}
+            </span>
+            <span className="text-white/40 text-xs ml-1">{flight.pointsProgram} pts</span>
+          </div>
+          <span className="text-white/30 text-xs">
+            vs ${typeof flight.cashPrice === 'number' ? flight.cashPrice.toLocaleString() : flight.cashPrice} cash
+          </span>
+        </div>
+
+        {/* CTA */}
+        <a
+          href={awardUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block w-full text-center text-xs text-[#c9a84c]/65 border border-[#c9a84c]/20 hover:border-[#c9a84c]/45 hover:text-[#c9a84c] hover:bg-[#c9a84c]/[0.04] rounded-lg py-2 transition-all"
+        >
+          Search Award Space →
+        </a>
+      </div>
+    </div>
+  );
+}
+
+function FlightsTab({ flights, loading }) {
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="rounded-2xl overflow-hidden border border-white/[0.06] bg-[#0d1526] animate-pulse">
+            <div className="h-32 bg-white/[0.04]" />
+            <div className="px-4 py-4 space-y-2.5">
+              <div className="h-3.5 w-36 bg-white/[0.05] rounded" />
+              <div className="h-3 w-48 bg-white/[0.04] rounded" />
+              <div className="h-3 w-32 bg-white/[0.03] rounded" />
+              <div className="h-8 bg-white/[0.03] rounded-lg mt-3" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (!flights) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-center px-8 min-h-[260px] gap-4">
+        <div className="w-12 h-12 rounded-full bg-[#c9a84c]/8 border border-[#c9a84c]/15 flex items-center justify-center">
+          <PlaneIcon className="w-6 h-6 text-[#c9a84c]/25" />
+        </div>
+        <p className="text-white/30 text-sm">Plan a trip in the chat to see flight options</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-white/20 text-[11px] leading-relaxed">
+        Typical award availability for this route. Search directly with the airline to confirm.
+      </p>
+      {flights.map((flight, i) => (
+        <FlightCard key={i} flight={flight} />
+      ))}
+    </div>
+  );
 }
 
 function OverviewTab({ overview }) {
@@ -1942,11 +2126,12 @@ function StrategyTab({ strategy }) {
   );
 }
 
-function TripIntelligencePanel({ intelligence, loading, activeTab, onTabChange, newIndicators, onClearIndicator, onToggleChecklistItem }) {
+function TripIntelligencePanel({ intelligence, loading, activeTab, onTabChange, newIndicators, onClearIndicator, onToggleChecklistItem, flights, flightsLoading }) {
   const tabs = [
     { id: 'overview', label: 'Overview' },
     { id: 'checklist', label: 'Checklist' },
     { id: 'strategy', label: 'Strategy' },
+    { id: 'flights', label: 'Flights' },
   ];
   const isEmpty = !intelligence;
   const [copied, setCopied] = useState(false);
@@ -1978,15 +2163,19 @@ function TripIntelligencePanel({ intelligence, loading, activeTab, onTabChange, 
             <button
               key={tab.id}
               onClick={() => { onTabChange(tab.id); onClearIndicator(tab.id); }}
-              className={`tab-btn inline-flex items-center gap-1.5 py-3 mr-5 text-sm border-b-2 border-transparent ${
+              className={`tab-btn inline-flex items-center gap-1.5 py-3 mr-4 text-xs border-b-2 border-transparent ${
                 activeTab === tab.id
                   ? 'tab-active text-white'
                   : 'text-white/35 hover:text-white/65'
               }`}
             >
               {tab.label}
-              {newIndicators?.[tab.id] && activeTab !== tab.id && (
-                <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c] animate-pulse flex-shrink-0 self-start mt-1" />
+              {/* Gold dot: new intel data for overview/checklist/strategy, or flights loaded */}
+              {tab.id !== 'flights' && newIndicators?.[tab.id] && activeTab !== tab.id && (
+                <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c] animate-pulse flex-shrink-0 self-start mt-0.5" />
+              )}
+              {tab.id === 'flights' && flights && activeTab !== 'flights' && (
+                <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c] flex-shrink-0 self-start mt-0.5" />
               )}
             </button>
           ))}
@@ -2002,7 +2191,9 @@ function TripIntelligencePanel({ intelligence, loading, activeTab, onTabChange, 
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
-        {isEmpty && !loading ? (
+        {activeTab === 'flights' ? (
+          <FlightsTab flights={flights} loading={flightsLoading} />
+        ) : isEmpty && !loading ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-8 min-h-[260px] gap-4">
             <div className="w-12 h-12 rounded-full bg-[#c9a84c]/8 border border-[#c9a84c]/15 flex items-center justify-center">
               <PlaneIcon className="w-6 h-6 text-[#c9a84c]/25" />
@@ -2639,6 +2830,12 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
   const [newTabIndicators, setNewTabIndicators] = useState({ overview: false, checklist: false, strategy: false });
   const [mobileIntelOpen, setMobileIntelOpen] = useState(false);
 
+  // Flights tab state
+  const [flights, setFlights] = useState(null);
+  const [flightsLoading, setFlightsLoading] = useState(false);
+  const flightsRef = useRef(null);
+  useEffect(() => { flightsRef.current = flights; }, [flights]);
+
   const clientRef = useRef(
     new Anthropic({
       apiKey: process.env.REACT_APP_ANTHROPIC_API_KEY,
@@ -2657,6 +2854,7 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
     setCurrentTripId(null);
     setSidebarOpen(false);
     setIntelligence(null);
+    setFlights(null);
     setNewTabIndicators({ overview: false, checklist: false, strategy: false });
     setShowTripBrief(true);
   };
@@ -2669,6 +2867,7 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
     setCurrentTripId(trip.id);
     setSidebarOpen(false);
     setIntelligence(trip.intelligence ?? null);
+    setFlights(null);
     setNewTabIndicators({ overview: false, checklist: false, strategy: false });
   };
 
@@ -2853,14 +3052,27 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
     }
   };
 
+  const handleIntelTabChange = async (tab) => {
+    setActiveIntelTab(tab);
+    // Lazy-fetch flights on first click when a trip has been planned
+    if (tab === 'flights' && flightsRef.current === null && !flightsLoading && intelligenceRef.current !== null) {
+      setFlightsLoading(true);
+      const result = await getFlightData(clientRef.current, messagesRef.current);
+      setFlights(result);
+      setFlightsLoading(false);
+    }
+  };
+
   const intelligencePanelProps = {
     intelligence,
     loading: intelligenceLoading,
     activeTab: activeIntelTab,
-    onTabChange: setActiveIntelTab,
+    onTabChange: handleIntelTabChange,
     newIndicators: newTabIndicators,
     onClearIndicator: (tab) => setNewTabIndicators((prev) => ({ ...prev, [tab]: false })),
     onToggleChecklistItem: toggleIntelligenceChecklistItem,
+    flights,
+    flightsLoading,
   };
 
   return (
