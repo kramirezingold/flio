@@ -2695,10 +2695,8 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
         messages: [{ role: 'user', content: hiddenPrompt }],
       });
 
-      let fullText = '';
       for await (const chunk of stream) {
         if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
-          fullText += chunk.delta.text;
           setMessages((prev) =>
             prev.map((m) => (m.id === assistantId ? { ...m, text: m.text + chunk.delta.text } : m))
           );
