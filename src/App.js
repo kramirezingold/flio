@@ -3159,25 +3159,6 @@ function cppDollar(balance, cpp) {
   return Math.round((balance * cpp) / 100);
 }
 
-function WalletTile({ name, balance, currency, cpp, icon }) {
-  const val = cppDollar(balance, cpp);
-  return (
-    <div className="bg-[#0d1526] border border-[#c9a84c]/10 rounded-xl p-4 card-hover">
-      <div className="flex items-center gap-2.5 mb-3">
-        {icon}
-        <span className="text-white/60 text-xs leading-tight">{name}</span>
-      </div>
-      <p className="text-white text-xl font-light leading-none mb-0.5">
-        <AnimatedNumber value={balance} />
-      </p>
-      <p className="text-white/25 text-[10px] mb-1.5">{currency}</p>
-      {balance > 0 && (
-        <p className="text-[#c9a84c] text-xs font-medium">~$<AnimatedNumber value={val} /></p>
-      )}
-    </div>
-  );
-}
-
 // ── Card Quiz ───────────────────────────────────────────────────────────────
 
 const QUIZ_QUESTIONS = [
@@ -3624,52 +3605,6 @@ function computeFlioScore(profile) {
   if (!checks.hasPreferences)   suggestions.push({ text: 'Set your travel preferences to personalize your recommendations', pts: 5 });
 
   return { score, suggestions: suggestions.slice(0, 3) };
-}
-
-function ScoreRing({ score, color }) {
-  const r = 54;
-  const circumference = 2 * Math.PI * r;
-  const [animated, setAnimated] = useState(0);
-
-  useEffect(() => {
-    setAnimated(0);
-    let rafId;
-    let start = null;
-    const duration = 1400;
-    const tick = (ts) => {
-      if (!start) start = ts;
-      const progress = Math.min((ts - start) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setAnimated(Math.round(eased * score));
-      if (progress < 1) rafId = requestAnimationFrame(tick);
-    };
-    rafId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafId);
-  }, [score]);
-
-  const offset = circumference * (1 - animated / 100);
-
-  return (
-    <svg width="148" height="148" viewBox="0 0 148 148" className="overflow-visible">
-      {/* Track */}
-      <circle cx="74" cy="74" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="10" />
-      {/* Glow */}
-      <circle
-        cx="74" cy="74" r={r} fill="none"
-        stroke={color} strokeWidth="16" strokeLinecap="round"
-        strokeDasharray={circumference} strokeDashoffset={offset}
-        transform="rotate(-90 74 74)"
-        style={{ opacity: 0.18, filter: 'blur(5px)' }}
-      />
-      {/* Arc */}
-      <circle
-        cx="74" cy="74" r={r} fill="none"
-        stroke={color} strokeWidth="10" strokeLinecap="round"
-        strokeDasharray={circumference} strokeDashoffset={offset}
-        transform="rotate(-90 74 74)"
-      />
-    </svg>
-  );
 }
 
 function ScoreRingCompact({ score, color }) {
