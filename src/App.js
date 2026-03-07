@@ -749,7 +749,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
 
   return (
     <div
-      className={`font-['DM_Sans',sans-serif] flex flex-col transition-colors duration-300 ${isLight ? 'bg-[#f5f0e8] lm' : 'bg-[#0a0f1e]'}`}
+      className={`font-['DM_Sans',sans-serif] flex flex-col transition-colors duration-300 ${isLight ? 'bg-[#f2ede3] lm' : 'bg-[#0a0f1e]'}`}
     >
       {/* ── Sticky nav ── */}
       <nav
@@ -757,7 +757,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
           scrolled ? (isLight ? 'shadow-[0_4px_24px_rgba(0,0,0,0.08)]' : 'shadow-[0_4px_32px_rgba(0,0,0,0.45)]') : ''
         }`}
         style={{
-          backgroundColor: isLight ? 'rgba(245,240,232,0.93)' : 'rgba(10,15,30,0.88)',
+          backgroundColor: isLight ? 'rgba(242,237,227,0.93)' : 'rgba(10,15,30,0.88)',
           borderBottom: `1px solid ${isLight ? 'rgba(13,21,38,0.08)' : 'rgba(255,255,255,0.04)'}`,
           transition: 'background-color 0.3s ease, box-shadow 0.3s ease',
         }}
@@ -816,7 +816,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
         <div
           className="sticky top-16 z-40 md:hidden px-6 py-4 flex flex-col gap-4 border-b"
           style={{
-            backgroundColor: isLight ? '#f5f0e8' : '#0a0f1e',
+            backgroundColor: isLight ? '#f2ede3' : '#0a0f1e',
             borderColor: isLight ? 'rgba(13,21,38,0.08)' : 'rgba(255,255,255,0.05)',
             transition: 'background-color 0.3s ease',
           }}
@@ -924,7 +924,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
         {/* Bottom fade — blends hero glow into the next section */}
         <div
           className="absolute bottom-0 left-0 right-0 h-40 pointer-events-none"
-          style={{ background: `linear-gradient(to bottom, transparent 0%, ${isLight ? '#f5f0e8' : '#0a0f1e'} 100%)` }}
+          style={{ background: `linear-gradient(to bottom, transparent 0%, ${isLight ? '#f2ede3' : '#0a0f1e'} 100%)` }}
         />
 
         {/* Scroll indicator */}
@@ -1072,7 +1072,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
           {/* Frosted unlock overlay */}
           <div className="absolute bottom-0 left-0 right-0 h-56 flex flex-col items-center justify-end pb-8 gap-2.5"
             style={{ background: isLight
-              ? 'linear-gradient(to bottom, transparent 0%, rgba(237,232,220,0.85) 35%, rgba(237,232,220,0.97) 60%, #ede8dc 100%)'
+              ? 'linear-gradient(to bottom, transparent 0%, rgba(232,226,212,0.85) 35%, rgba(232,226,212,0.97) 60%, #e8e2d4 100%)'
               : 'linear-gradient(to bottom, transparent 0%, rgba(13,21,38,0.85) 35%, rgba(13,21,38,0.97) 60%, #0d1526 100%)' }}
           >
             <p className="text-white/35 text-xs tracking-wide">Your real balances. Your actual credits.</p>

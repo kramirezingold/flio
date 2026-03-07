@@ -160,10 +160,10 @@ body {
 /* ── Light mode (.lm applied to landing page root div) ─────────────────── */
 
 /* Backgrounds */
-.lm .bg-\[\#0a0f1e\]       { background-color: #f5f0e8 !important; }
-.lm .bg-\[\#0d1526\]       { background-color: #ede8dc !important; }
+.lm .bg-\[\#0a0f1e\]       { background-color: #f2ede3 !important; }
+.lm .bg-\[\#0d1526\]       { background-color: #e8e2d4 !important; }
 .lm .bg-\[\#111d35\]       { background-color: #e8e2d4 !important; }
-.lm .bg-\[\#070d1c\]       { background-color: #f0ead8 !important; }
+.lm .bg-\[\#070d1c\]       { background-color: #e8e2d4 !important; }
 .lm .bg-white\/5           { background-color: rgba(13,21,38,0.05) !important; }
 .lm .bg-white\/\[0\.08\]   { background-color: rgba(13,21,38,0.07) !important; }
 .lm .bg-red-950\/20        { background-color: rgba(220,38,38,0.07) !important; }
