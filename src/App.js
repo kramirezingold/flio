@@ -243,6 +243,17 @@ const CARDS_CPP = {
   'venture-x': 1.85, 'citi-premier': 1.8, 'boa-premium': 1.5,
 };
 
+// Left-border accent colors for dashboard wallet rows
+const CARD_LEFT_COLORS = {
+  csr:            '#c9a84c',
+  csp:            '#7eb3e8',
+  'amex-plat':    '#a8aebb',
+  'amex-gold':    '#d4aa44',
+  'venture-x':    '#6c9ed4',
+  'citi-premier': '#4a7ecf',
+  'boa-premium':  '#e05c3a',
+};
+
 const CARD_CREDITS_DATA = {
   csr: [
     { id: 'csr-travel',   label: 'Travel Credit',  value: 300, note: 'Any travel purchase' },
@@ -3167,280 +3178,6 @@ function WalletTile({ name, balance, currency, cpp, icon }) {
   );
 }
 
-function WalletSection({ profile }) {
-  const programs = profile.loyaltyPrograms ?? [];
-  const cards = profile.creditCards ?? [];
-
-  const total = [
-    ...programs.map((p) => cppDollar(p.balance, POINTS_CPP[p.id] ?? 1.0)),
-    ...cards.map((c) => cppDollar(c.balance, CARDS_CPP[c.id] ?? 1.5)),
-  ].reduce((a, b) => a + b, 0);
-
-  if (programs.length === 0 && cards.length === 0) {
-    return (
-      <section>
-        <h3 className="text-white font-medium mb-3">Travel Wallet</h3>
-        <p className="text-white/30 text-sm">No programs or cards added yet.</p>
-      </section>
-    );
-  }
-
-  return (
-    <section>
-      <div className="flex items-center justify-between mb-5">
-        <h3 className="text-white font-medium">Travel Wallet</h3>
-        <div className="text-right">
-          <p className="text-[10px] text-white/30 uppercase tracking-widest">Total Est. Value</p>
-          <p className="text-[#c9a84c] text-xl font-semibold">${total.toLocaleString()}</p>
-        </div>
-      </div>
-
-      {programs.length > 0 && (
-        <>
-          <p className="text-[10px] text-white/30 uppercase tracking-widest mb-3">Loyalty Programs</p>
-          <div className="grid grid-cols-2 gap-2.5 mb-6">
-            {programs.map((p) => (
-              <WalletTile
-                key={p.id}
-                name={p.shortName}
-                balance={p.balance}
-                currency={p.currency}
-                cpp={POINTS_CPP[p.id] ?? 1.0}
-                icon={
-                  <div style={{ backgroundColor: p.color }} className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-white text-[9px] font-bold">{p.initials}</span>
-                  </div>
-                }
-              />
-            ))}
-          </div>
-        </>
-      )}
-
-      {cards.length > 0 && (
-        <>
-          <p className="text-[10px] text-white/30 uppercase tracking-widest mb-3">Credit Cards</p>
-          <div className="grid grid-cols-2 gap-2.5">
-            {cards.map((c) => (
-              <WalletTile
-                key={c.id}
-                name={c.shortName}
-                balance={c.balance}
-                currency={c.currency}
-                cpp={CARDS_CPP[c.id] ?? 1.5}
-                icon={
-                  <div style={{ background: c.bg }} className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <span style={{ color: c.accentColor }} className="text-[7px] font-bold leading-none">{c.issuer?.split(' ')[0]}</span>
-                  </div>
-                }
-              />
-            ))}
-          </div>
-        </>
-      )}
-    </section>
-  );
-}
-
-function CreditsSection({ profile, usedCredits, onToggle }) {
-  const cards = profile.creditCards ?? [];
-  const eligible = cards.filter((c) => CARD_CREDITS_DATA[c.id]);
-
-  const totalAvailable = eligible
-    .flatMap((c) => CARD_CREDITS_DATA[c.id])
-    .filter((cr) => !usedCredits[cr.id])
-    .reduce((a, cr) => a + cr.value, 0);
-
-  if (eligible.length === 0) {
-    return (
-      <section>
-        <h3 className="text-white font-medium mb-3">Annual Credits</h3>
-        <p className="text-white/30 text-sm">Add eligible cards to see your credits here.</p>
-      </section>
-    );
-  }
-
-  return (
-    <section>
-      <div className="flex items-center justify-between mb-5">
-        <h3 className="text-white font-medium">Annual Credits</h3>
-        <div className="text-right">
-          <p className="text-[10px] text-white/30 uppercase tracking-widest">Available</p>
-          <p className="text-emerald-400 text-xl font-semibold">${totalAvailable.toLocaleString()}</p>
-        </div>
-      </div>
-
-      <div className="space-y-5">
-        {eligible.map((card) => (
-          <div key={card.id}>
-            <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">{card.shortName}</p>
-            <div className="space-y-2">
-              {CARD_CREDITS_DATA[card.id].map((credit) => {
-                const used = !!usedCredits[credit.id];
-                return (
-                  <div
-                    key={credit.id}
-                    className={`flex items-center justify-between bg-[#0d1526] border rounded-xl px-4 py-3 transition-all ${
-                      used ? 'border-white/5 opacity-40' : 'border-white/10'
-                    }`}
-                  >
-                    <div>
-                      <p className={`text-sm leading-snug ${used ? 'line-through text-white/30' : 'text-white/80'}`}>
-                        {credit.label}
-                      </p>
-                      <p className={`text-xs mt-0.5 ${used ? 'text-white/20' : 'text-[#c9a84c]'}`}>
-                        ${credit.value} · {credit.note}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => onToggle(credit.id)}
-                      className={`ml-4 flex-shrink-0 text-xs px-3 py-1.5 rounded-full border transition-all ${
-                        used
-                          ? 'border-white/10 text-white/25'
-                          : 'border-emerald-500/40 text-emerald-400 bg-emerald-500/10'
-                      }`}
-                    >
-                      {used ? 'Used' : 'Available'}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function SettingsSection({ profile, onSave }) {
-  const [editing, setEditing] = useState(null);
-  const [airportQuery, setAirportQuery] = useState('');
-  const [draftAirport, setDraftAirport] = useState(null);
-
-  const filteredAirports = useMemo(() => {
-    if (!airportQuery.trim() || draftAirport) return [];
-    const q = airportQuery.toLowerCase();
-    return AIRPORTS.filter(
-      (a) => a.code.toLowerCase().includes(q) || a.city.toLowerCase().includes(q) || a.name.toLowerCase().includes(q)
-    ).slice(0, 5);
-  }, [airportQuery, draftAirport]);
-
-  const prefs = profile.preferences ?? {};
-
-  const startEditAirport = () => {
-    const a = profile.homeAirport;
-    setAirportQuery(a ? `${a.city} (${a.code})` : '');
-    setDraftAirport(a ?? null);
-    setEditing('airport');
-  };
-
-  const saveAirport = () => {
-    if (draftAirport) onSave({ ...profile, homeAirport: draftAirport });
-    setEditing(null);
-  };
-
-  const savePref = (key, val) => {
-    onSave({ ...profile, preferences: { ...prefs, [key]: val } });
-  };
-
-  return (
-    <section>
-      <h3 className="text-white font-medium mb-4">Profile Settings</h3>
-      <div className="space-y-3">
-
-        {/* Home airport */}
-        <div className="card-hover bg-[#0d1526] border border-[#c9a84c]/12 rounded-xl p-4">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-[10px] text-white/30 uppercase tracking-widest">Home Airport</p>
-            {editing !== 'airport'
-              ? <button onClick={startEditAirport} className="text-xs text-[#c9a84c] hover:text-white transition-colors">Edit</button>
-              : <button onClick={() => setEditing(null)} className="text-xs text-white/30 hover:text-white transition-colors">Cancel</button>}
-          </div>
-          {editing === 'airport' ? (
-            <div>
-              <div className="relative">
-                <input
-                  autoFocus
-                  type="text"
-                  value={airportQuery}
-                  onChange={(e) => { setAirportQuery(e.target.value); setDraftAirport(null); }}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-white/20 input-gold focus:outline-none transition-all"
-                  placeholder="Search city or code…"
-                />
-                {filteredAirports.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-[#111d35] border border-white/10 rounded-xl overflow-hidden z-10 shadow-2xl">
-                    {filteredAirports.map((a) => (
-                      <button key={a.code} onClick={() => { setDraftAirport(a); setAirportQuery(`${a.city} (${a.code})`); }}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-white/5 transition-colors text-left border-b border-white/5 last:border-0">
-                        <span className="text-[#c9a84c] text-xs font-mono font-bold w-8">{a.code}</span>
-                        <span className="text-white text-sm">{a.city}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <button onClick={saveAirport} disabled={!draftAirport}
-                className="mt-2 w-full py-2 rounded-full bg-[#c9a84c] disabled:bg-white/10 text-[#060d1f] disabled:text-white/30 text-xs font-semibold transition-colors">
-                Save
-              </button>
-            </div>
-          ) : (
-            <p className="text-white text-sm">
-              {profile.homeAirport ? `${profile.homeAirport.city} (${profile.homeAirport.code})` : <span className="text-white/30">Not set</span>}
-            </p>
-          )}
-        </div>
-
-        {/* Cabin preference */}
-        <div className="card-hover bg-[#0d1526] border border-[#c9a84c]/12 rounded-xl p-4">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-[10px] text-white/30 uppercase tracking-widest">Cabin Preference</p>
-            {editing !== 'cabin'
-              ? <button onClick={() => setEditing('cabin')} className="text-xs text-[#c9a84c] hover:text-white transition-colors">Edit</button>
-              : <button onClick={() => setEditing(null)} className="text-xs text-white/30 hover:text-white transition-colors">Done</button>}
-          </div>
-          {editing === 'cabin' ? (
-            <div className="flex flex-wrap gap-2 mt-1">
-              {['Economy', 'Premium Economy', 'Business', 'First'].map((c) => (
-                <button key={c} onClick={() => { savePref('cabin', c); setEditing(null); }}
-                  className={`px-3 py-1.5 rounded-full text-xs transition-all ${prefs.cabin === c ? 'bg-[#c9a84c] text-[#060d1f] font-semibold' : 'border border-white/15 text-white/60 hover:text-white'}`}>
-                  {c}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <p className="text-white text-sm">{prefs.cabin ?? <span className="text-white/30">Not set</span>}</p>
-          )}
-        </div>
-
-        {/* Travel style */}
-        <div className="card-hover bg-[#0d1526] border border-[#c9a84c]/12 rounded-xl p-4">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-[10px] text-white/30 uppercase tracking-widest">Travel Style</p>
-            {editing !== 'style'
-              ? <button onClick={() => setEditing('style')} className="text-xs text-[#c9a84c] hover:text-white transition-colors">Edit</button>
-              : <button onClick={() => setEditing(null)} className="text-xs text-white/30 hover:text-white transition-colors">Done</button>}
-          </div>
-          {editing === 'style' ? (
-            <div className="flex flex-wrap gap-2 mt-1">
-              {['Maximize comfort', 'Maximize value', 'Balance both'].map((s) => (
-                <button key={s} onClick={() => { savePref('style', s); setEditing(null); }}
-                  className={`px-3 py-1.5 rounded-full text-xs transition-all ${prefs.style === s ? 'bg-[#c9a84c] text-[#060d1f] font-semibold' : 'border border-white/15 text-white/60 hover:text-white'}`}>
-                  {s}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <p className="text-white text-sm">{prefs.style ?? <span className="text-white/30">Not set</span>}</p>
-          )}
-        </div>
-
-      </div>
-    </section>
-  );
-}
-
 // ── Card Quiz ───────────────────────────────────────────────────────────────
 
 const QUIZ_QUESTIONS = [
@@ -3935,98 +3672,35 @@ function ScoreRing({ score, color }) {
   );
 }
 
-function FlioScoreSection({ profile }) {
-  const { score, suggestions } = useMemo(() => computeFlioScore(profile), [profile]);
-  const [quizOpen, setQuizOpen] = useState(false);
-
-  const color = score <= 40 ? '#ef4444'
-    : score <= 70 ? '#f59e0b'
-    : score <= 90 ? '#60a5fa'
-    : '#c9a84c';
-
-  const label = score <= 40 ? 'Beginner'
-    : score <= 70 ? 'Intermediate'
-    : score <= 90 ? 'Advanced'
-    : 'Elite';
-
-  const labelBg = `${color}18`;
-  const labelBorder = `${color}40`;
-
+function ScoreRingCompact({ score, color }) {
+  const r = 30;
+  const circumference = 2 * Math.PI * r;
+  const [animated, setAnimated] = useState(0);
+  useEffect(() => {
+    setAnimated(0);
+    let rafId;
+    let start = null;
+    const tick = (ts) => {
+      if (!start) start = ts;
+      const progress = Math.min((ts - start) / 1200, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setAnimated(Math.round(eased * score));
+      if (progress < 1) rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, [score]);
+  const offset = circumference * (1 - animated / 100);
   return (
-    <div className="mb-8 bg-white/[0.025] border border-white/[0.06] rounded-2xl p-6">
-      {/* Ring + number */}
-      <div className="flex flex-col items-center mb-5">
-        <div className="relative">
-          <ScoreRing score={score} color={color} />
-          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            <span className="text-[2.6rem] font-bold text-white leading-none tabular-nums">{score}</span>
-            <span className="text-[10px] text-white/30 mt-0.5 tracking-wide">/ 100</span>
-          </div>
-        </div>
-        <div className="mt-4 flex flex-col items-center gap-1.5">
-          <span
-            className="text-xs font-semibold px-3.5 py-1 rounded-full"
-            style={{ color, backgroundColor: labelBg, border: `1px solid ${labelBorder}` }}
-          >
-            {label}
-          </span>
-          <p className="text-white/30 text-xs tracking-wide">Flio Score · how optimized your setup is</p>
-        </div>
-      </div>
-
-      <div className="border-t border-white/[0.05] mb-5" />
-
-      {/* Suggestions */}
-      {score >= 100 ? (
-        <div className="text-center py-1">
-          <p className="text-white/65 text-sm">Your setup is fully optimized. 🏆</p>
-        </div>
-      ) : (
-        <>
-          <p className="text-[10px] text-white/25 uppercase tracking-widest mb-3">How to improve</p>
-          <div className="flex flex-col gap-2.5">
-            {suggestions.map((s, i) => (
-              <div
-                key={i}
-                className="flex items-start gap-3 bg-white/[0.03] border border-white/[0.05] rounded-xl px-4 py-3"
-              >
-                <div
-                  className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold mt-0.5"
-                  style={{ backgroundColor: labelBg, color, border: `1px solid ${labelBorder}` }}
-                >
-                  +
-                </div>
-                <p className="flex-1 text-white/60 text-xs leading-relaxed">{s.text}</p>
-                <span
-                  className="flex-shrink-0 text-xs font-semibold tabular-nums self-center"
-                  style={{ color }}
-                >
-                  +{s.pts}pts
-                </span>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-
-      {/* Quiz CTA */}
-      <div className="border-t border-white/[0.05] mt-5 pt-5">
-        <button
-          onClick={() => setQuizOpen(true)}
-          className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-[#c9a84c]/25 hover:bg-[#c9a84c]/[0.04] transition-all duration-200 group"
-        >
-          <div className="text-left">
-            <p className="text-white/75 text-sm font-medium group-hover:text-white transition-colors">Find Your Next Card</p>
-            <p className="text-white/30 text-xs mt-0.5">5-question quiz · personalized picks</p>
-          </div>
-          <ChevronRightIcon className="w-4 h-4 text-white/25 group-hover:text-[#c9a84c] transition-colors flex-shrink-0" />
-        </button>
-      </div>
-
-      {quizOpen && (
-        <CardQuizModal profile={profile} onClose={() => setQuizOpen(false)} />
-      )}
-    </div>
+    <svg width="80" height="80" viewBox="0 0 80 80" className="overflow-visible">
+      <circle cx="40" cy="40" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="6" />
+      <circle cx="40" cy="40" r={r} fill="none" stroke={color} strokeWidth="10" strokeLinecap="round"
+        strokeDasharray={circumference} strokeDashoffset={offset}
+        transform="rotate(-90 40 40)" style={{ opacity: 0.18, filter: 'blur(3px)' }} />
+      <circle cx="40" cy="40" r={r} fill="none" stroke={color} strokeWidth="6" strokeLinecap="round"
+        strokeDasharray={circumference} strokeDashoffset={offset}
+        transform="rotate(-90 40 40)" />
+    </svg>
   );
 }
 
@@ -4296,7 +3970,7 @@ function AddTravelerModal({ onSave, onClose, initial = null }) {
   );
 }
 
-function TravelersSection({ profile, travelers, onSaveTravelers }) {
+function TravelersSection({ profile, travelers, onSaveTravelers, showHeader = true }) {
   const [allExpanded, setAllExpanded] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingTraveler, setEditingTraveler] = useState(null);
@@ -4319,24 +3993,26 @@ function TravelersSection({ profile, travelers, onSaveTravelers }) {
   const canAdd = travelers.length < 3;
 
   return (
-    <div className="mb-8">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-white font-medium">Travelers</h3>
-        <div className="flex items-center gap-4">
-          {totalCombined > 0 && (
-            <div className="text-right">
-              <p className="text-[10px] text-white/30 uppercase tracking-widest">Combined Wallet</p>
-              <p className="text-[#c9a84c] text-sm font-semibold">${totalCombined.toLocaleString()}</p>
-            </div>
-          )}
-          <button
-            onClick={() => setAllExpanded((p) => !p)}
-            className="flex items-center gap-1 text-white/35 hover:text-white/65 transition-colors text-xs"
-          >
-            <ChevronDownIcon className={`w-4 h-4 transition-transform duration-200 ${allExpanded ? 'rotate-180' : ''}`} />
-          </button>
+    <div>
+      {showHeader && (
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-white font-medium">Travelers</h3>
+          <div className="flex items-center gap-4">
+            {totalCombined > 0 && (
+              <div className="text-right">
+                <p className="text-[10px] text-white/30 uppercase tracking-widest">Combined Wallet</p>
+                <p className="text-[#c9a84c] text-sm font-semibold">${totalCombined.toLocaleString()}</p>
+              </div>
+            )}
+            <button
+              onClick={() => setAllExpanded((p) => !p)}
+              className="flex items-center gap-1 text-white/35 hover:text-white/65 transition-colors text-xs"
+            >
+              <ChevronDownIcon className={`w-4 h-4 transition-transform duration-200 ${allExpanded ? 'rotate-180' : ''}`} />
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="flex flex-col gap-3">
         <TravelerCard
@@ -4388,52 +4064,380 @@ function TravelersSection({ profile, travelers, onSaveTravelers }) {
   );
 }
 
-function ProfileDashboard({ profile, usedCredits, onToggleCredit, onSave, onBack, travelers = [], onSaveTravelers }) {
-  const [tab, setTab] = useState('wallet'); // 'wallet' | 'credits' | 'settings'
+function DashSectionLabel({ label, children }) {
+  return (
+    <div className="mb-5">
+      <p className="text-[10px] text-[#c9a84c] uppercase tracking-widest mb-1">{label}</p>
+      <h2 className="text-white font-semibold text-base">{children}</h2>
+    </div>
+  );
+}
 
-  const tabs = [
-    { id: 'wallet',   label: 'Wallet' },
-    { id: 'credits',  label: 'Credits' },
-    { id: 'settings', label: 'Settings' },
-  ];
+function SettingsRow({ label, value, editing, onEdit, onCancel, children }) {
+  return (
+    <div className="border-b border-white/[0.05] last:border-0">
+      <div className="flex items-center py-4 gap-4">
+        <span className="text-white/30 text-xs uppercase tracking-widest w-32 flex-shrink-0">{label}</span>
+        {!editing ? (
+          <>
+            <span className="flex-1 text-white/75 text-sm">
+              {value ?? <span className="text-white/20">Not set</span>}
+            </span>
+            <button
+              onClick={onEdit}
+              className="flex-shrink-0 text-white/20 hover:text-[#c9a84c] transition-colors"
+              title={`Edit ${label}`}
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </button>
+          </>
+        ) : (
+          <button onClick={onCancel} className="ml-auto text-xs text-white/30 hover:text-white/60 transition-colors">Cancel</button>
+        )}
+      </div>
+      {editing && children && <div className="pb-4">{children}</div>}
+    </div>
+  );
+}
+
+function ProfileDashboard({ profile, usedCredits, onToggleCredit, onSave, onBack, travelers = [], onSaveTravelers }) {
+  const [editingField, setEditingField] = useState(null);
+  const [airportQuery, setAirportQuery]   = useState('');
+  const [draftAirport, setDraftAirport]   = useState(null);
+  const [quizOpen, setQuizOpen]           = useState(false);
+
+  const programs  = profile.loyaltyPrograms ?? [];
+  const cards     = profile.creditCards ?? [];
+  const prefs     = profile.preferences ?? {};
+
+  const programsTotal = programs.reduce((s, p) => s + cppDollar(p.balance, POINTS_CPP[p.id] ?? 1.0), 0);
+  const cardsTotal    = cards.reduce((s, c)    => s + cppDollar(c.balance, CARDS_CPP[c.id] ?? 1.5), 0);
+  const walletTotal   = programsTotal + cardsTotal;
+
+  const eligibleCards     = cards.filter((c) => CARD_CREDITS_DATA[c.id]);
+  const creditsAvailable  = eligibleCards
+    .flatMap((c) => CARD_CREDITS_DATA[c.id])
+    .filter((cr) => !usedCredits[cr.id])
+    .reduce((a, cr) => a + cr.value, 0);
+
+  const { score }  = useMemo(() => computeFlioScore(profile), [profile]);
+  const scoreColor = score <= 40 ? '#ef4444' : score <= 70 ? '#f59e0b' : score <= 90 ? '#60a5fa' : '#c9a84c';
+  const scoreLabel = score <= 40 ? 'Beginner' : score <= 70 ? 'Intermediate' : score <= 90 ? 'Advanced' : 'Elite';
+
+  const filteredAirports = useMemo(() => {
+    if (!airportQuery.trim() || draftAirport) return [];
+    const q = airportQuery.toLowerCase();
+    return AIRPORTS.filter((a) =>
+      a.code.toLowerCase().includes(q) || a.city.toLowerCase().includes(q) || a.name.toLowerCase().includes(q)
+    ).slice(0, 5);
+  }, [airportQuery, draftAirport]);
+
+  const startEditAirport = () => {
+    const a = profile.homeAirport;
+    setAirportQuery(a ? `${a.city} (${a.code})` : '');
+    setDraftAirport(a ?? null);
+    setEditingField('airport');
+  };
+  const saveAirport = () => {
+    if (draftAirport) onSave({ ...profile, homeAirport: draftAirport });
+    setEditingField(null);
+  };
+  const savePref = (key, val) => {
+    onSave({ ...profile, preferences: { ...prefs, [key]: val } });
+    setEditingField(null);
+  };
 
   return (
-    <div className="min-h-screen bg-[#0a0f1e] font-['DM_Sans',sans-serif] flex flex-col">
-      {/* Header */}
-      <div className="flex items-center gap-4 px-6 py-5 border-b border-white/5">
+    <div className="min-h-screen bg-[#0a0f1e] font-['DM_Sans',sans-serif]">
+      {/* Nav */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
         <button onClick={onBack} className="text-white/40 hover:text-white transition-colors">
           <ArrowLeftIcon className="w-5 h-5" />
         </button>
-        <div className="w-8 h-8 rounded-full bg-[#c9a84c]/20 border border-[#c9a84c]/30 flex items-center justify-center">
-          <UserIcon className="w-4 h-4 text-[#c9a84c]" />
-        </div>
-        <h1 className="text-white font-medium text-sm">My Profile</h1>
+        <span className="text-white/25 text-[10px] uppercase tracking-widest">Dashboard</span>
+        <div className="w-5" />
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-white/5 px-6">
-        {tabs.map((t) => (
+      <div className="max-w-2xl mx-auto px-5 pb-24">
+
+        {/* ── 1. Header Banner ─────────────────────────────────────── */}
+        <div className="mt-8 mb-12 pb-10 border-b border-white/[0.06]">
+          <div className="flex items-start justify-between gap-6">
+            {/* Left */}
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] text-[#c9a84c] uppercase tracking-widest mb-3">Welcome back</p>
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mb-6">
+                {profile.homeAirport
+                  ? <span className="text-white/55 text-sm">{profile.homeAirport.city} ({profile.homeAirport.code})</span>
+                  : <span className="text-white/25 text-sm">No home airport set</span>}
+                {prefs.cabin && <>
+                  <span className="text-white/20">·</span>
+                  <span className="text-white/55 text-sm">{prefs.cabin}</span>
+                </>}
+              </div>
+              <p className="text-white text-4xl font-bold leading-none tabular-nums">
+                ${walletTotal.toLocaleString()}
+              </p>
+              <p className="text-white/35 text-sm mt-2">total wallet value</p>
+              {creditsAvailable > 0 && (
+                <p className="text-emerald-400/80 text-sm mt-1">
+                  + ${creditsAvailable.toLocaleString()} in unused credits
+                </p>
+              )}
+            </div>
+            {/* Right: compact score ring */}
+            <div className="flex flex-col items-center flex-shrink-0 mt-1">
+              <div className="relative">
+                <ScoreRingCompact score={score} color={scoreColor} />
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <span className="text-xl font-bold text-white tabular-nums">{score}</span>
+                </div>
+              </div>
+              <span
+                className="mt-1.5 text-[10px] font-semibold px-2.5 py-0.5 rounded-full"
+                style={{ color: scoreColor, backgroundColor: `${scoreColor}18`, border: `1px solid ${scoreColor}35` }}
+              >
+                {scoreLabel}
+              </span>
+              <p className="text-white/20 text-[9px] mt-1 uppercase tracking-widest">Flio Score</p>
+            </div>
+          </div>
+        </div>
+
+        {/* ── 2. Travel Wallet ─────────────────────────────────────── */}
+        <section className="mb-12">
+          <DashSectionLabel label="Portfolio">Travel Wallet</DashSectionLabel>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-8">
+
+            {/* Loyalty Programs column */}
+            <div>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-3">Loyalty Programs</p>
+              {programs.length === 0
+                ? <p className="text-white/20 text-xs py-2">No programs added</p>
+                : <>
+                  <div className="divide-y divide-white/[0.04]">
+                    {programs.map((p) => {
+                      const val = cppDollar(p.balance, POINTS_CPP[p.id] ?? 1.0);
+                      return (
+                        <div key={p.id} className="flex items-center py-2.5 pl-3 border-l-2 gap-3" style={{ borderColor: p.color }}>
+                          <span className="flex-1 text-white/70 text-sm truncate">{p.shortName}</span>
+                          <span className="text-white/30 text-xs tabular-nums flex-shrink-0">
+                            {p.balance > 0 ? p.balance.toLocaleString() : '—'}
+                          </span>
+                          <span className="text-[#c9a84c] text-sm font-medium tabular-nums w-14 text-right flex-shrink-0">
+                            {val > 0 ? `$${val.toLocaleString()}` : '—'}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="flex items-center justify-between pt-3 mt-1 border-t border-white/[0.06]">
+                    <span className="text-white/25 text-[10px] uppercase tracking-widest">Total</span>
+                    <span className="text-[#c9a84c] text-base font-semibold tabular-nums">${programsTotal.toLocaleString()}</span>
+                  </div>
+                </>
+              }
+            </div>
+
+            {/* Credit Cards column */}
+            <div>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-3">Credit Cards</p>
+              {cards.length === 0
+                ? <p className="text-white/20 text-xs py-2">No cards added</p>
+                : <>
+                  <div className="divide-y divide-white/[0.04]">
+                    {cards.map((c) => {
+                      const val = cppDollar(c.balance, CARDS_CPP[c.id] ?? 1.5);
+                      const borderColor = CARD_LEFT_COLORS[c.id] ?? '#c9a84c';
+                      return (
+                        <div key={c.id} className="flex items-center py-2.5 pl-3 border-l-2 gap-3" style={{ borderColor }}>
+                          <span className="flex-1 text-white/70 text-sm truncate">{c.shortName}</span>
+                          <span className="text-white/30 text-xs tabular-nums flex-shrink-0">
+                            {c.balance > 0 ? c.balance.toLocaleString() : '—'}
+                          </span>
+                          <span className="text-[#c9a84c] text-sm font-medium tabular-nums w-14 text-right flex-shrink-0">
+                            {val > 0 ? `$${val.toLocaleString()}` : '—'}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="flex items-center justify-between pt-3 mt-1 border-t border-white/[0.06]">
+                    <span className="text-white/25 text-[10px] uppercase tracking-widest">Total</span>
+                    <span className="text-[#c9a84c] text-base font-semibold tabular-nums">${cardsTotal.toLocaleString()}</span>
+                  </div>
+                </>
+              }
+            </div>
+          </div>
+        </section>
+
+        {/* ── 3. Annual Credits ────────────────────────────────────── */}
+        <section className="mb-12">
+          <div className="flex items-end justify-between mb-5">
+            <DashSectionLabel label="Benefits">Annual Credits</DashSectionLabel>
+            {creditsAvailable > 0 && (
+              <div className="text-right mb-5">
+                <p className="text-[10px] text-white/25 uppercase tracking-widest">Available</p>
+                <p className="text-emerald-400 text-xl font-bold tabular-nums">${creditsAvailable.toLocaleString()}</p>
+              </div>
+            )}
+          </div>
+          {eligibleCards.length === 0
+            ? <p className="text-white/20 text-xs">Add eligible cards to track your credits.</p>
+            : <div className="space-y-7">
+              {eligibleCards.map((card) => {
+                const borderColor = CARD_LEFT_COLORS[card.id] ?? '#c9a84c';
+                return (
+                  <div key={card.id}>
+                    <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">{card.shortName}</p>
+                    <div className="divide-y divide-white/[0.04]">
+                      {CARD_CREDITS_DATA[card.id].map((credit) => {
+                        const used = !!usedCredits[credit.id];
+                        return (
+                          <div
+                            key={credit.id}
+                            className={`flex items-center py-2.5 pl-3 border-l-2 gap-3 transition-all ${used ? 'opacity-40' : ''}`}
+                            style={{ borderColor }}
+                          >
+                            <div className="flex-1 min-w-0">
+                              <span className={`text-sm ${used ? 'line-through text-white/30' : 'text-white/70'}`}>
+                                {credit.label}
+                              </span>
+                              <span className="text-white/20 text-xs ml-2">{credit.note}</span>
+                            </div>
+                            <span className="text-white/45 text-sm font-medium tabular-nums flex-shrink-0">${credit.value}</span>
+                            <button
+                              onClick={() => onToggleCredit(credit.id)}
+                              className={`flex-shrink-0 text-[11px] px-2.5 py-1 rounded-full border transition-all ${
+                                used
+                                  ? 'border-white/10 text-white/25'
+                                  : 'border-emerald-500/40 text-emerald-400 bg-emerald-500/[0.08]'
+                              }`}
+                            >
+                              {used ? 'Used' : 'Available'}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          }
+        </section>
+
+        {/* ── 4. Travelers ─────────────────────────────────────────── */}
+        <section className="mb-12">
+          <DashSectionLabel label="Party">Travelers</DashSectionLabel>
+          <TravelersSection
+            profile={profile}
+            travelers={travelers}
+            onSaveTravelers={onSaveTravelers}
+            showHeader={false}
+          />
+        </section>
+
+        {/* ── 5. Card Recommendation ───────────────────────────────── */}
+        <section className="mb-12">
           <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`tab-btn py-3 mr-6 text-sm border-b-2 border-transparent ${
-              tab === t.id ? 'tab-active text-white' : 'text-white/35 hover:text-white/65'
-            }`}
+            onClick={() => setQuizOpen(true)}
+            className="w-full flex items-center justify-between px-5 py-4 rounded-xl bg-white/[0.025] border border-white/[0.06] hover:border-[#c9a84c]/25 hover:bg-[#c9a84c]/[0.04] transition-all duration-200 group"
           >
-            {t.label}
+            <div className="text-left">
+              <p className="text-[10px] text-[#c9a84c] uppercase tracking-widest mb-0.5">Optimizer</p>
+              <p className="text-white/70 text-sm font-medium group-hover:text-white transition-colors">Find Your Next Card</p>
+              <p className="text-white/25 text-xs mt-0.5">5-question quiz · personalized picks</p>
+            </div>
+            <ChevronRightIcon className="w-4 h-4 text-white/20 group-hover:text-[#c9a84c] transition-colors flex-shrink-0" />
           </button>
-        ))}
-      </div>
+          {quizOpen && <CardQuizModal profile={profile} onClose={() => setQuizOpen(false)} />}
+        </section>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="px-5 py-7 max-w-2xl mx-auto w-full">
-          <FlioScoreSection profile={profile} />
-          <TravelersSection profile={profile} travelers={travelers} onSaveTravelers={onSaveTravelers} />
-          {tab === 'wallet'   && <WalletSection  profile={profile} />}
-          {tab === 'credits'  && <CreditsSection profile={profile} usedCredits={usedCredits} onToggle={onToggleCredit} />}
-          {tab === 'settings' && <SettingsSection profile={profile} onSave={onSave} />}
-        </div>
+        {/* ── 6. Profile Settings ──────────────────────────────────── */}
+        <section className="mb-12">
+          <DashSectionLabel label="Preferences">Profile Settings</DashSectionLabel>
+          <div className="border-t border-white/[0.05]">
+
+            {/* Home Airport */}
+            <SettingsRow
+              label="Home Airport"
+              value={profile.homeAirport ? `${profile.homeAirport.city} (${profile.homeAirport.code})` : null}
+              editing={editingField === 'airport'}
+              onEdit={startEditAirport}
+              onCancel={() => setEditingField(null)}
+            >
+              <div className="relative">
+                <input
+                  autoFocus
+                  type="text"
+                  value={airportQuery}
+                  onChange={(e) => { setAirportQuery(e.target.value); setDraftAirport(null); }}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-white/20 input-gold focus:outline-none"
+                  placeholder="Search city or code…"
+                />
+                {filteredAirports.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-[#111d35] border border-white/10 rounded-xl overflow-hidden z-10 shadow-2xl">
+                    {filteredAirports.map((a) => (
+                      <button key={a.code}
+                        onClick={() => { setDraftAirport(a); setAirportQuery(`${a.city} (${a.code})`); }}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-white/5 transition-colors text-left border-b border-white/5 last:border-0"
+                      >
+                        <span className="text-[#c9a84c] text-xs font-mono font-bold w-8">{a.code}</span>
+                        <span className="text-white text-sm">{a.city}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <button onClick={saveAirport} disabled={!draftAirport}
+                  className="mt-2 w-full py-2 rounded-full bg-[#c9a84c] disabled:bg-white/10 text-[#060d1f] disabled:text-white/30 text-xs font-semibold transition-colors">
+                  Save
+                </button>
+              </div>
+            </SettingsRow>
+
+            {/* Cabin Preference */}
+            <SettingsRow
+              label="Cabin Class"
+              value={prefs.cabin}
+              editing={editingField === 'cabin'}
+              onEdit={() => setEditingField('cabin')}
+              onCancel={() => setEditingField(null)}
+            >
+              <div className="flex flex-wrap gap-2">
+                {['Economy', 'Premium Economy', 'Business', 'First'].map((c) => (
+                  <button key={c} onClick={() => savePref('cabin', c)}
+                    className={`px-3 py-1.5 rounded-full text-xs transition-all ${prefs.cabin === c ? 'bg-[#c9a84c] text-[#060d1f] font-semibold' : 'border border-white/15 text-white/60 hover:text-white'}`}>
+                    {c}
+                  </button>
+                ))}
+              </div>
+            </SettingsRow>
+
+            {/* Travel Style */}
+            <SettingsRow
+              label="Travel Style"
+              value={prefs.style}
+              editing={editingField === 'style'}
+              onEdit={() => setEditingField('style')}
+              onCancel={() => setEditingField(null)}
+            >
+              <div className="flex flex-wrap gap-2">
+                {['Maximize comfort', 'Maximize value', 'Balance both'].map((s) => (
+                  <button key={s} onClick={() => savePref('style', s)}
+                    className={`px-3 py-1.5 rounded-full text-xs transition-all ${prefs.style === s ? 'bg-[#c9a84c] text-[#060d1f] font-semibold' : 'border border-white/15 text-white/60 hover:text-white'}`}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </SettingsRow>
+
+          </div>
+        </section>
+
       </div>
     </div>
   );
