@@ -3114,6 +3114,402 @@ function SettingsSection({ profile, onSave }) {
   );
 }
 
+// ── Card Quiz ───────────────────────────────────────────────────────────────
+
+const QUIZ_QUESTIONS = [
+  {
+    id: 'spend',
+    q: 'Where do you spend the most?',
+    options: ['Dining out', 'Travel & flights', 'Groceries & everyday', 'Spread evenly'],
+  },
+  {
+    id: 'flight_freq',
+    q: 'How often do you fly?',
+    options: ['Every week', 'A few times a month', 'A few times a year', 'Rarely'],
+  },
+  {
+    id: 'priority',
+    q: 'What matters most to you?',
+    options: ['Lounge access', 'Hotel status & upgrades', 'Maximum point accumulation', 'Simple cash back'],
+  },
+  {
+    id: 'annual_fee',
+    q: 'How do you feel about annual fees?',
+    options: ['Fine if it pays off', 'Keep it under $100', 'No annual fee only'],
+  },
+  {
+    id: 'existing',
+    q: 'Do you already have a Chase or Amex card?',
+    options: ['Have Chase', 'Have Amex', 'Have both', 'Neither'],
+  },
+];
+
+const CARD_REC_DB = {
+  'amex-gold': {
+    name: 'Amex Gold Card',
+    fee: '$325/year',
+    url: 'https://www.americanexpress.com/us/credit-cards/card/gold-card/',
+    benefits: [
+      '4x points on dining worldwide',
+      '4x points on U.S. supermarkets',
+      '$120/year dining credit + $120 Uber Cash',
+      'Transfer 1:1 to Hyatt, Delta, and 20+ partners',
+    ],
+  },
+  'amex-plat': {
+    name: 'Amex Platinum Card',
+    fee: '$895/year',
+    url: 'https://www.americanexpress.com/us/credit-cards/card/platinum-card/',
+    benefits: [
+      'Centurion Lounges + 10 Delta Sky Club visits/year',
+      '5x points on flights booked direct with airlines',
+      '$600/year hotel credit (Fine Hotels + Resorts)',
+      'Complimentary Marriott Gold + Hilton Gold status',
+    ],
+  },
+  'csr': {
+    name: 'Chase Sapphire Reserve',
+    fee: '$795/year',
+    url: 'https://creditcards.chase.com/rewards-credit-cards/sapphire/reserve',
+    benefits: [
+      'Priority Pass + Chase Sapphire Lounge access',
+      '4x points on travel and dining',
+      '$300/year travel credit',
+      'Transfer 1:1 to Hyatt, United, and 12 more partners',
+    ],
+  },
+  'csp': {
+    name: 'Chase Sapphire Preferred',
+    fee: '$95/year',
+    url: 'https://creditcards.chase.com/rewards-credit-cards/sapphire/preferred',
+    benefits: [
+      'Same 14 transfer partners as Sapphire Reserve',
+      '3x on dining, streaming & online groceries',
+      '2x on all other travel',
+      '$50/year hotel credit via Chase Travel',
+    ],
+  },
+  'venture-x': {
+    name: 'Capital One Venture X',
+    fee: '$395/year',
+    url: 'https://creditcards.capitalone.com/venture-x-credit-card/',
+    benefits: [
+      '2x miles on every purchase — no categories',
+      'Priority Pass + Capital One Lounges',
+      '$300/year travel credit (makes effective fee $95)',
+      '10,000 bonus miles every anniversary',
+    ],
+  },
+  'citi-premier': {
+    name: 'Citi Premier Card',
+    fee: '$95/year',
+    url: 'https://www.citi.com/credit-cards/citi-premier-credit-card',
+    benefits: [
+      '3x on dining, groceries, hotels, gas & flights',
+      'Transfer to 18 airline partners',
+      'No foreign transaction fees',
+    ],
+  },
+};
+
+function getCardHeadline(cardId, answers) {
+  const { spend, flight_freq, priority, annual_fee } = answers;
+  const map = {
+    'amex-gold': () => {
+      if (spend === 'Dining out') return 'The best dining card alive — 4x on every restaurant meal worldwide';
+      if (spend === 'Groceries & everyday') return '4x on dining + U.S. supermarkets covers your two biggest spend categories';
+      return 'The strongest everyday earner if dining and groceries drive your spend';
+    },
+    'amex-plat': () => {
+      if (priority === 'Lounge access') return 'Centurion + Delta Sky Club access — the gold standard for airport lounges';
+      if (flight_freq === 'Every week') return 'Purpose-built for road warriors: every major lounge network in one card';
+      return '5x on flights and best-in-class lounge access for frequent travelers';
+    },
+    'csr': () => {
+      if (priority === 'Hotel status & upgrades') return 'The fastest path to World of Hyatt — the best hotel redemptions available';
+      if (flight_freq === 'Every week' || flight_freq === 'A few times a month') return 'Priority Pass access + 4x on travel and the strongest transfer lineup';
+      return 'Top lounge access, 4x on travel, and Hyatt transfers in one card';
+    },
+    'csp': () => {
+      if (annual_fee === 'Keep it under $100') return 'The best $95/year travel card — same Hyatt and United transfers as the Reserve';
+      return 'The ideal first travel card: 14 transfer partners for just $95/year';
+    },
+    'venture-x': () => {
+      if (priority === 'Simple cash back') return '2x on everything, no categories to track — plus lounges and $300 travel credit';
+      return 'Flat 2x on all spending + lounge access + $300 credit effectively makes it free';
+    },
+    'citi-premier': () => {
+      if (annual_fee !== 'Fine if it pays off') return 'Just $95/year with 3x on five major spend categories — unmatched coverage';
+      return '3x on dining, groceries, hotels, gas, and flights for a single $95 fee';
+    },
+  };
+  return map[cardId]?.() ?? 'A strong match for your travel profile';
+}
+
+function getCardRecommendations(answers, existingCardIds) {
+  const { spend, flight_freq, priority, annual_fee, existing } = answers;
+  const feeOk          = annual_fee === 'Fine if it pays off';
+  const lowFee         = annual_fee === 'Keep it under $100';
+  const frequentFlyer  = flight_freq === 'Every week' || flight_freq === 'A few times a month';
+  const occasionalFlyer = flight_freq === 'A few times a year';
+  const rareFlyer      = flight_freq === 'Rarely';
+  const hasDining      = spend === 'Dining out';
+  const hasTravel      = spend === 'Travel & flights';
+  const hasEveryday    = spend === 'Groceries & everyday' || spend === 'Spread evenly';
+  const hasChase       = existing === 'Have Chase' || existing === 'Have both';
+  const hasAmex        = existing === 'Have Amex' || existing === 'Have both';
+  const hasNeither     = existing === 'Neither';
+  const wantsLounge    = priority === 'Lounge access';
+  const wantsHotel     = priority === 'Hotel status & upgrades';
+  const wantsPoints    = priority === 'Maximum point accumulation';
+  const wantsSimple    = priority === 'Simple cash back';
+
+  const scored = [
+    { id: 'amex-gold',    score: 0 },
+    { id: 'amex-plat',    score: 0 },
+    { id: 'csr',          score: 0 },
+    { id: 'csp',          score: 0 },
+    { id: 'venture-x',    score: 0 },
+    { id: 'citi-premier', score: 0 },
+  ];
+
+  const bump = (id, pts) => {
+    const entry = scored.find((s) => s.id === id);
+    if (entry) entry.score += pts;
+  };
+
+  // Amex Gold
+  if (hasDining)      bump('amex-gold', 40);
+  if (hasEveryday)    bump('amex-gold', 25);
+  if (feeOk)          bump('amex-gold', 15);
+  if (wantsPoints)    bump('amex-gold', 20);
+  if (!hasAmex)       bump('amex-gold', 10);
+
+  // Amex Platinum
+  if (wantsLounge)    bump('amex-plat', 45);
+  if (frequentFlyer)  bump('amex-plat', 30);
+  if (feeOk)          bump('amex-plat', 20);
+  if (hasTravel)      bump('amex-plat', 20);
+
+  // CSR
+  if (frequentFlyer && hasAmex) bump('csr', 45);
+  if (wantsLounge)    bump('csr', 30);
+  if (wantsHotel)     bump('csr', 25);
+  if (feeOk)          bump('csr', 20);
+  if (hasTravel)      bump('csr', 15);
+
+  // CSP — entry point for non-Chase
+  if (hasNeither && (frequentFlyer || occasionalFlyer)) bump('csp', 50);
+  if (lowFee)         bump('csp', 35);
+  if (wantsPoints)    bump('csp', 20);
+  if (!hasChase)      bump('csp', 15);
+
+  // Venture X
+  if (wantsSimple)    bump('venture-x', 45);
+  if (hasEveryday)    bump('venture-x', 25);
+  if (rareFlyer || occasionalFlyer) bump('venture-x', 20);
+  if (feeOk || lowFee) bump('venture-x', 15);
+
+  // Citi Premier
+  if (lowFee || annual_fee === 'No annual fee only') bump('citi-premier', 40);
+  if (rareFlyer)      bump('citi-premier', 30);
+  if (wantsPoints)    bump('citi-premier', 20);
+  if (hasEveryday)    bump('citi-premier', 15);
+
+  return scored
+    .filter((s) => !existingCardIds.includes(s.id) && s.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
+}
+
+function QuizQuestion({ question, step, total, selectedOption, onSelect }) {
+  return (
+    <div className="animate-slide-in px-7 pt-7 pb-6">
+      {/* Progress */}
+      <div className="mb-7">
+        <div className="flex items-center justify-between mb-2.5">
+          <span className="text-[10px] text-white/30 uppercase tracking-widest">
+            Question {step + 1} of {total}
+          </span>
+          <span className="text-[10px] text-white/20">{Math.round(((step + 1) / total) * 100)}%</span>
+        </div>
+        <div className="h-[3px] bg-white/[0.06] rounded-full overflow-hidden">
+          <div
+            className="h-full bg-[#c9a84c] rounded-full transition-all duration-500 ease-out"
+            style={{ width: `${((step + 1) / total) * 100}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Question */}
+      <h2 className="text-lg font-semibold text-white mb-5 leading-snug">{question.q}</h2>
+
+      {/* Options */}
+      <div className="flex flex-col gap-2.5">
+        {question.options.map((opt) => (
+          <button
+            key={opt}
+            onClick={() => onSelect(question.id, opt)}
+            className={`text-left px-5 py-3.5 rounded-xl border text-sm font-medium transition-all duration-150 ${
+              selectedOption === opt
+                ? 'bg-[#c9a84c]/15 border-[#c9a84c]/55 text-[#c9a84c]'
+                : 'bg-white/[0.03] border-white/[0.08] text-white/60 hover:text-white hover:border-white/20 hover:bg-white/[0.06]'
+            }`}
+          >
+            {opt}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function QuizResults({ recommendations, answers, onRetake }) {
+  return (
+    <div className="animate-slide-in px-7 pt-7 pb-6 overflow-y-auto max-h-[85vh]">
+      <div className="mb-5">
+        <p className="text-[10px] text-[#c9a84c] uppercase tracking-widest mb-1.5">Your Results</p>
+        <h2 className="text-lg font-semibold text-white">Cards matched to your profile</h2>
+      </div>
+
+      {recommendations.length === 0 ? (
+        <p className="text-white/45 text-sm py-4">
+          All matched cards are already in your wallet — your setup looks great!
+        </p>
+      ) : (
+        <div className="flex flex-col gap-4 mb-5">
+          {recommendations.map((rec, i) => {
+            const card = CARD_REC_DB[rec.id];
+            if (!card) return null;
+            return (
+              <div
+                key={rec.id}
+                className={`relative rounded-2xl border p-5 ${
+                  i === 0
+                    ? 'border-[#c9a84c]/35 bg-[#0d1526] shadow-[0_0_24px_rgba(201,168,76,0.07)]'
+                    : 'border-white/[0.07] bg-white/[0.025]'
+                }`}
+              >
+                {i === 0 && (
+                  <div className="absolute -top-3 left-5">
+                    <span className="bg-[#c9a84c] text-[#060d1f] text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wide">
+                      Top Pick
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex items-start justify-between gap-2 mb-1.5">
+                  <h3 className="text-white font-semibold text-sm">{card.name}</h3>
+                  <span className="text-white/30 text-xs flex-shrink-0 mt-0.5">{card.fee}</span>
+                </div>
+
+                <p className="text-[#c9a84c]/75 text-xs mb-3 leading-relaxed italic">
+                  {getCardHeadline(rec.id, answers)}
+                </p>
+
+                <ul className="space-y-1.5 mb-4">
+                  {card.benefits.slice(0, 3).map((b) => (
+                    <li key={b} className="flex items-start gap-2 text-xs text-white/50">
+                      <CheckIcon className="w-3.5 h-3.5 text-[#c9a84c] flex-shrink-0 mt-0.5" />
+                      {b}
+                    </li>
+                  ))}
+                </ul>
+
+                <a
+                  href={card.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 btn-gold bg-[#c9a84c] hover:bg-[#d4af37] text-[#060d1f] font-semibold px-4 py-2 rounded-lg text-xs"
+                >
+                  Learn More →
+                </a>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <button
+        onClick={onRetake}
+        className="w-full text-white/30 hover:text-white/60 text-sm transition-colors py-2"
+      >
+        ↺ Retake Quiz
+      </button>
+    </div>
+  );
+}
+
+function CardQuizModal({ profile, onClose }) {
+  const [step, setStep] = useState(0);
+  const [answers, setAnswers] = useState({});
+  const [selectedOption, setSelectedOption] = useState(null);
+  const existingCardIds = useMemo(
+    () => profile?.creditCards?.map((c) => c.id) ?? [],
+    [profile]
+  );
+
+  const handleSelect = useCallback((questionId, option) => {
+    setSelectedOption(option);
+    setTimeout(() => {
+      setAnswers((prev) => ({ ...prev, [questionId]: option }));
+      setStep((s) => s + 1);
+      setSelectedOption(null);
+    }, 200);
+  }, []);
+
+  const recommendations = useMemo(
+    () => step >= QUIZ_QUESTIONS.length ? getCardRecommendations(answers, existingCardIds) : [],
+    [step, answers, existingCardIds]
+  );
+
+  const retake = () => {
+    setStep(0);
+    setAnswers({});
+    setSelectedOption(null);
+  };
+
+  const isResults = step >= QUIZ_QUESTIONS.length;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div className="absolute inset-0 bg-black/65 backdrop-blur-sm" />
+      <div
+        className="relative bg-[#080d1f] border border-white/[0.08] rounded-2xl w-full max-w-md shadow-[0_32px_80px_rgba(0,0,0,0.75)] overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 z-10 text-white/25 hover:text-white/55 transition-colors"
+        >
+          <XIcon className="w-5 h-5" />
+        </button>
+
+        {isResults ? (
+          <QuizResults
+            key="results"
+            recommendations={recommendations}
+            answers={answers}
+            onRetake={retake}
+          />
+        ) : (
+          <QuizQuestion
+            key={step}
+            question={QUIZ_QUESTIONS[step]}
+            step={step}
+            total={QUIZ_QUESTIONS.length}
+            selectedOption={selectedOption}
+            onSelect={handleSelect}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Flio Score ──────────────────────────────────────────────────────────────
 
 const TRANSFERABLE_CARD_IDS = ['csr', 'csp', 'amex-plat', 'amex-gold', 'venture-x'];
@@ -3214,6 +3610,7 @@ function ScoreRing({ score, color }) {
 
 function FlioScoreSection({ profile }) {
   const { score, suggestions } = useMemo(() => computeFlioScore(profile), [profile]);
+  const [quizOpen, setQuizOpen] = useState(false);
 
   const color = score <= 40 ? '#ef4444'
     : score <= 70 ? '#f59e0b'
@@ -3283,6 +3680,24 @@ function FlioScoreSection({ profile }) {
             ))}
           </div>
         </>
+      )}
+
+      {/* Quiz CTA */}
+      <div className="border-t border-white/[0.05] mt-5 pt-5">
+        <button
+          onClick={() => setQuizOpen(true)}
+          className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-[#c9a84c]/25 hover:bg-[#c9a84c]/[0.04] transition-all duration-200 group"
+        >
+          <div className="text-left">
+            <p className="text-white/75 text-sm font-medium group-hover:text-white transition-colors">Find Your Next Card</p>
+            <p className="text-white/30 text-xs mt-0.5">5-question quiz · personalized picks</p>
+          </div>
+          <ChevronRightIcon className="w-4 h-4 text-white/25 group-hover:text-[#c9a84c] transition-colors flex-shrink-0" />
+        </button>
+      </div>
+
+      {quizOpen && (
+        <CardQuizModal profile={profile} onClose={() => setQuizOpen(false)} />
       )}
     </div>
   );
