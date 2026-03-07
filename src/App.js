@@ -727,6 +727,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
 
   const scrollToSection = (id) => {
     setMenuOpen(false);
+    setActiveSection(id); // immediate highlight on click — observer handles natural scroll
     if (id === 'home') { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
     const el = document.getElementById(id);
     if (!el) return;
