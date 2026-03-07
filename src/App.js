@@ -2197,15 +2197,31 @@ function ChatBubble({ message }) {
 
 // ── Trip Brief Modal ────────────────────────────────────────────────────────
 
-function TripBriefModal({ onSubmit, onSkip }) {
+function TripBriefModal({ onSubmit, onSkip, travelers = [] }) {
   const [destination, setDestination] = useState('');
   const [dates, setDates]             = useState('');
-  const [travelers, setTravelers]     = useState(1);
+  const [travelerCount, setTravelerCount] = useState(1);
   const [priority, setPriority]       = useState('Balance both');
+  const [selectedTravelerIds, setSelectedTravelerIds] = useState(
+    () => ['primary', ...travelers.map((t) => t.id)]
+  );
+
+  const toggleTraveler = (id) => {
+    setSelectedTravelerIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
 
   const handleSubmit = () => {
     if (!destination.trim()) return;
-    onSubmit({ destination: destination.trim(), dates: dates.trim(), travelers, priority });
+    const hasNamedTravelers = travelers.length > 0;
+    onSubmit({
+      destination: destination.trim(),
+      dates: dates.trim(),
+      travelers: hasNamedTravelers ? selectedTravelerIds.length : travelerCount,
+      priority,
+      selectedTravelerIds: hasNamedTravelers ? selectedTravelerIds : null,
+    });
   };
 
   return (
@@ -2259,25 +2275,61 @@ function TripBriefModal({ onSubmit, onSkip }) {
           </div>
 
           {/* Travelers */}
-          <div>
-            <label className="text-xs text-white/40 mb-2 block">Travelers</label>
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setTravelers((t) => Math.max(1, t - 1))}
-                className="w-8 h-8 rounded-full bg-white/[0.06] border border-white/[0.08] text-white/60 hover:text-white hover:bg-white/10 flex items-center justify-center text-xl font-light leading-none transition-colors"
-              >
-                −
-              </button>
-              <span className="text-white font-semibold text-base w-4 text-center tabular-nums">{travelers}</span>
-              <button
-                onClick={() => setTravelers((t) => Math.min(6, t + 1))}
-                className="w-8 h-8 rounded-full bg-white/[0.06] border border-white/[0.08] text-white/60 hover:text-white hover:bg-white/10 flex items-center justify-center text-xl font-light leading-none transition-colors"
-              >
-                +
-              </button>
-              <span className="text-white/30 text-xs ml-1">{travelers === 1 ? 'Just me' : `${travelers} people`}</span>
+          {travelers.length > 0 ? (
+            <div>
+              <label className="text-xs text-white/40 mb-2 block">Who's traveling?</label>
+              <div className="space-y-2">
+                {[{ id: 'primary', nickname: 'Primary Traveler (You)' }, ...travelers].map((t) => {
+                  const checked = selectedTravelerIds.includes(t.id);
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => toggleTraveler(t.id)}
+                      className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl border text-left transition-all duration-150 ${
+                        checked
+                          ? 'bg-[#c9a84c]/10 border-[#c9a84c]/40'
+                          : 'bg-white/[0.03] border-white/[0.08] hover:border-white/20'
+                      }`}
+                    >
+                      <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-all ${
+                        checked ? 'bg-[#c9a84c] border-[#c9a84c]' : 'border-white/20 bg-transparent'
+                      }`}>
+                        {checked && <CheckIcon className="w-2.5 h-2.5 text-[#060d1f]" />}
+                      </div>
+                      <div className="w-6 h-6 rounded-full bg-[#c9a84c]/15 border border-[#c9a84c]/20 flex items-center justify-center flex-shrink-0">
+                        <span className="text-[#c9a84c] text-[9px] font-semibold">
+                          {t.id === 'primary' ? 'P' : (t.nickname[0] ?? '?').toUpperCase()}
+                        </span>
+                      </div>
+                      <span className={`text-sm ${checked ? 'text-white/85' : 'text-white/45'}`}>
+                        {t.nickname}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div>
+              <label className="text-xs text-white/40 mb-2 block">Travelers</label>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setTravelerCount((t) => Math.max(1, t - 1))}
+                  className="w-8 h-8 rounded-full bg-white/[0.06] border border-white/[0.08] text-white/60 hover:text-white hover:bg-white/10 flex items-center justify-center text-xl font-light leading-none transition-colors"
+                >
+                  −
+                </button>
+                <span className="text-white font-semibold text-base w-4 text-center tabular-nums">{travelerCount}</span>
+                <button
+                  onClick={() => setTravelerCount((t) => Math.min(6, t + 1))}
+                  className="w-8 h-8 rounded-full bg-white/[0.06] border border-white/[0.08] text-white/60 hover:text-white hover:bg-white/10 flex items-center justify-center text-xl font-light leading-none transition-colors"
+                >
+                  +
+                </button>
+                <span className="text-white/30 text-xs ml-1">{travelerCount === 1 ? 'Just me' : `${travelerCount} people`}</span>
+              </div>
+            </div>
+          )}
 
           {/* Priority */}
           <div>
@@ -2546,7 +2598,7 @@ Rules: GREAT = above 1.5¢/pt, GOOD = 0.8–1.5¢/pt, BAD = below 0.8¢/pt.`,
 
 // ── Chat Interface ──────────────────────────────────────────────────────────
 
-function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips, onSaveTrip, onDeleteTrip }) {
+function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips, onSaveTrip, onDeleteTrip, travelers = [] }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentTripId, setCurrentTripId] = useState(null);
   const currentTripIdRef = useRef(null);
@@ -2611,20 +2663,35 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
 
   const submitBrief = async (brief) => {
     setShowTripBrief(false);
-    setTripBrief(brief);
+
+    // Resolve selected additional traveler objects for system prompt injection
+    const additionalTravelers = brief.selectedTravelerIds
+      ? travelers.filter((t) => brief.selectedTravelerIds.includes(t.id))
+      : [];
+    const enrichedBrief = { ...brief, selectedTravelers: additionalTravelers.length > 0 ? additionalTravelers : null };
+
+    setTripBrief(enrichedBrief);
 
     const assistantId = Date.now();
     setMessages([{ id: assistantId, role: 'assistant', text: '', time: now() }]);
     setIsStreaming(true);
 
-    const travelers = brief.travelers === 1 ? 'just me' : `${brief.travelers} travelers`;
-    const hiddenPrompt = `My trip brief: going to ${brief.destination}${brief.dates ? `, ${brief.dates}` : ''}, ${travelers}, priority is ${brief.priority.toLowerCase()}. Please give me a quick, punchy opening — acknowledge the trip details in one line (like "Got it — ${brief.destination}${brief.dates ? `, ${brief.dates}` : ''}, ${travelers}, ${brief.priority.toLowerCase()}."), then immediately give me 2-3 concrete, specific initial thoughts based on my actual cards and points for this trip. Be direct and specific — no fluff.`;
+    // Build travelers description for hidden prompt
+    let travelersStr;
+    if (brief.selectedTravelerIds && brief.selectedTravelerIds.length > 1) {
+      const extraNames = travelers.filter((t) => brief.selectedTravelerIds.includes(t.id)).map((t) => t.nickname);
+      travelersStr = extraNames.length > 0 ? `me and ${extraNames.join(' and ')}` : 'just me';
+    } else {
+      travelersStr = brief.travelers === 1 ? 'just me' : `${brief.travelers} travelers`;
+    }
+
+    const hiddenPrompt = `My trip brief: going to ${brief.destination}${brief.dates ? `, ${brief.dates}` : ''}, ${travelersStr}, priority is ${brief.priority.toLowerCase()}. Please give me a quick, punchy opening — acknowledge the trip details in one line (like "Got it — ${brief.destination}${brief.dates ? `, ${brief.dates}` : ''}, ${travelersStr}, ${brief.priority.toLowerCase()}."), then immediately give me 2-3 concrete, specific initial thoughts based on my actual cards and points for this trip. Be direct and specific — no fluff.`;
 
     try {
       const stream = await clientRef.current.messages.stream({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 600,
-        system: getSystemPrompt(profile, brief),
+        system: getSystemPrompt(profile, enrichedBrief),
         messages: [{ role: 'user', content: hiddenPrompt }],
       });
 
@@ -2795,6 +2862,7 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
         <TripBriefModal
           onSubmit={submitBrief}
           onSkip={() => setShowTripBrief(false)}
+          travelers={travelers}
         />
       )}
 
@@ -3964,7 +4032,359 @@ function FlioScoreSection({ profile }) {
   );
 }
 
-function ProfileDashboard({ profile, usedCredits, onToggleCredit, onSave, onBack }) {
+// ── Traveler Management ──────────────────────────────────────────────────────
+
+function computeTravelerWalletValue(traveler) {
+  const programs = traveler?.loyaltyPrograms ?? [];
+  const cards    = traveler?.creditCards ?? [];
+  return [
+    ...programs.map((p) => cppDollar(p.balance, POINTS_CPP[p.id] ?? 1.0)),
+    ...cards.map((c) => cppDollar(c.balance, CARDS_CPP[c.id] ?? 1.5)),
+  ].reduce((a, b) => a + b, 0);
+}
+
+function TravelerCard({ name, initial, programs, cards, value, isPrimary, isExpanded, onToggleExpand, onEdit, onDelete }) {
+  const totalItems = programs.length + cards.length;
+  return (
+    <div className="flex-1 min-w-0 bg-white/[0.025] border border-white/[0.06] rounded-2xl overflow-hidden">
+      <button
+        onClick={onToggleExpand}
+        className="w-full flex items-center gap-3 p-4 hover:bg-white/[0.02] transition-colors text-left"
+      >
+        <div className="w-9 h-9 rounded-full bg-[#c9a84c]/15 border border-[#c9a84c]/25 flex items-center justify-center flex-shrink-0">
+          <span className="text-[#c9a84c] text-sm font-semibold">{initial}</span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-white/85 text-sm font-medium leading-tight truncate">{name}</p>
+          <p className="text-white/30 text-xs mt-0.5">
+            {totalItems === 0
+              ? 'No programs'
+              : `${totalItems} program${totalItems !== 1 ? 's' : ''}${value > 0 ? ` · $${value.toLocaleString()}` : ''}`}
+          </p>
+        </div>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {!isPrimary && onEdit && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onEdit(); }}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-white/25 hover:text-white/60 hover:bg-white/[0.06] transition-all"
+              title="Edit"
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </button>
+          )}
+          {!isPrimary && onDelete && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-white/25 hover:text-red-400 hover:bg-red-400/[0.08] transition-all"
+              title="Delete"
+            >
+              <TrashIcon className="w-3.5 h-3.5" />
+            </button>
+          )}
+          <ChevronDownIcon className={`w-4 h-4 text-white/25 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+        </div>
+      </button>
+      {isExpanded && (
+        <div className="border-t border-white/[0.05] px-4 pb-4">
+          {programs.length > 0 && (
+            <div className="pt-3">
+              <p className="text-[10px] text-white/25 uppercase tracking-widest mb-2">Programs</p>
+              <div className="space-y-1.5">
+                {programs.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div style={{ backgroundColor: p.color }} className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-white text-[6px] font-bold">{p.initials}</span>
+                      </div>
+                      <span className="text-white/55 text-xs">{p.shortName}</span>
+                    </div>
+                    {p.balance > 0 && (
+                      <span className="text-white/35 text-xs tabular-nums">{p.balance.toLocaleString()} {p.currency}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {cards.length > 0 && (
+            <div className="pt-3">
+              <p className="text-[10px] text-white/25 uppercase tracking-widest mb-2">Cards</p>
+              <div className="space-y-1.5">
+                {cards.map((c) => (
+                  <div key={c.id} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div style={{ background: c.bg }} className="w-5 h-3.5 rounded flex-shrink-0" />
+                      <span className="text-white/55 text-xs">{c.shortName}</span>
+                    </div>
+                    {c.balance > 0 && (
+                      <span className="text-white/35 text-xs tabular-nums">{c.balance.toLocaleString()} {c.currency}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {programs.length === 0 && cards.length === 0 && (
+            <p className="pt-3 text-white/25 text-xs">No programs or cards added.</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AddTravelerModal({ onSave, onClose, initial = null }) {
+  const [step, setStep] = useState(0);
+  const [nickname, setNickname] = useState(initial?.nickname ?? '');
+  const [selectedPrograms, setSelectedPrograms] = useState(initial?.loyaltyPrograms ?? []);
+  const [selectedCards, setSelectedCards] = useState(initial?.creditCards ?? []);
+  const [balanceModal, setBalanceModal] = useState(null);
+
+  const handleProgramToggle = (program) => {
+    if (selectedPrograms.find((s) => s.id === program.id)) {
+      setSelectedPrograms((prev) => prev.filter((s) => s.id !== program.id));
+    } else {
+      setBalanceModal({ item: program, type: 'loyalty' });
+    }
+  };
+
+  const handleCardToggle = (card) => {
+    if (selectedCards.find((s) => s.id === card.id)) {
+      setSelectedCards((prev) => prev.filter((s) => s.id !== card.id));
+    } else {
+      setBalanceModal({ item: card, type: 'card' });
+    }
+  };
+
+  const handleBalanceConfirm = (balance) => {
+    const { item, type } = balanceModal;
+    if (type === 'loyalty') {
+      setSelectedPrograms((prev) => [...prev, { ...item, balance }]);
+    } else {
+      setSelectedCards((prev) => [...prev, { ...item, balance }]);
+    }
+    setBalanceModal(null);
+  };
+
+  const canNext = step === 0 ? nickname.trim().length > 0 : true;
+  const STEP_LABELS_T = ['Name', 'Programs', 'Cards'];
+
+  const handleNext = () => {
+    if (step < 2) {
+      setStep((s) => s + 1);
+    } else {
+      onSave({
+        id: initial?.id ?? String(Date.now()),
+        nickname: nickname.trim(),
+        loyaltyPrograms: selectedPrograms,
+        creditCards: selectedCards,
+      });
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div
+        className="relative bg-[#0d1526] border border-white/[0.08] rounded-2xl w-full max-w-md shadow-[0_24px_64px_rgba(0,0,0,0.6)] flex flex-col max-h-[90vh]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center gap-3 px-6 py-4 border-b border-white/[0.06] flex-shrink-0">
+          <button
+            onClick={step === 0 ? onClose : () => setStep((s) => s - 1)}
+            className="text-white/40 hover:text-white transition-colors"
+          >
+            <ArrowLeftIcon className="w-4 h-4" />
+          </button>
+          <div className="flex-1">
+            <p className="text-[10px] text-white/30 uppercase tracking-widest mb-0.5">Step {step + 1} of 3</p>
+            <h2 className="text-white text-sm font-medium">{STEP_LABELS_T[step]}</h2>
+          </div>
+          <button onClick={onClose} className="text-white/30 hover:text-white/60 transition-colors">
+            <XIcon className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Progress */}
+        <div className="flex gap-1 px-6 pt-3 flex-shrink-0">
+          {[0, 1, 2].map((n) => (
+            <div
+              key={n}
+              className="h-0.5 flex-1 rounded-full transition-all duration-500"
+              style={{ backgroundColor: n <= step ? '#c9a84c' : 'rgba(255,255,255,0.1)' }}
+            />
+          ))}
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto px-6 py-6">
+          {step === 0 && (
+            <div>
+              <h2 className="text-white text-2xl font-light mb-1">Who's traveling with you?</h2>
+              <p className="text-white/40 text-sm mb-8">Give them a nickname — like "Sarah" or "Dad"</p>
+              <input
+                type="text"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && canNext && handleNext()}
+                placeholder="e.g. Sarah"
+                autoFocus
+                maxLength={24}
+                className="input-gold w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-white/20 focus:outline-none transition-all"
+              />
+            </div>
+          )}
+          {step === 1 && (
+            <div>
+              <h2 className="text-white text-2xl font-light mb-1">{nickname}'s programs</h2>
+              <p className="text-white/40 text-sm mb-8">Select their loyalty programs</p>
+              <SelectionGrid
+                items={LOYALTY_PROGRAMS}
+                selected={selectedPrograms}
+                onToggle={handleProgramToggle}
+                renderCard={(item) => (
+                  <div style={{ backgroundColor: item.color }} className="w-10 h-10 rounded-full flex items-center justify-center">
+                    <span className="text-white text-[10px] font-bold">{item.initials}</span>
+                  </div>
+                )}
+              />
+            </div>
+          )}
+          {step === 2 && (
+            <div>
+              <h2 className="text-white text-2xl font-light mb-1">{nickname}'s cards</h2>
+              <p className="text-white/40 text-sm mb-8">Select their credit cards</p>
+              <SelectionGrid
+                items={CREDIT_CARDS}
+                selected={selectedCards}
+                onToggle={handleCardToggle}
+                renderCard={(item) => (
+                  <div style={{ background: item.bg }} className="w-full h-10 rounded-lg flex items-center px-2.5">
+                    <span style={{ color: item.accentColor }} className="text-[9px] font-bold tracking-wider opacity-80">
+                      {item.issuer}
+                    </span>
+                  </div>
+                )}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-white/[0.06] flex-shrink-0">
+          <button
+            onClick={handleNext}
+            disabled={!canNext}
+            className="btn-gold w-full bg-[#c9a84c] hover:bg-[#d4af37] disabled:opacity-35 disabled:cursor-not-allowed text-[#060d1f] font-semibold py-3 rounded-xl text-sm transition-all duration-200"
+          >
+            {step < 2 ? 'Next →' : (initial ? 'Save Changes' : 'Save Traveler')}
+          </button>
+        </div>
+
+        {balanceModal && (
+          <BalanceModal
+            item={balanceModal.item}
+            type={balanceModal.type}
+            onConfirm={handleBalanceConfirm}
+            onClose={() => setBalanceModal(null)}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function TravelersSection({ profile, travelers, onSaveTravelers }) {
+  const [expanded, setExpanded] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingTraveler, setEditingTraveler] = useState(null);
+
+  const primaryValue  = computeTravelerWalletValue(profile);
+  const totalCombined = [primaryValue, ...travelers.map(computeTravelerWalletValue)].reduce((a, b) => a + b, 0);
+
+  const handleSaveTraveler = (t) => {
+    const existing = travelers.find((x) => x.id === t.id);
+    const next = existing ? travelers.map((x) => x.id === t.id ? t : x) : [...travelers, t];
+    onSaveTravelers(next);
+    setShowAddModal(false);
+    setEditingTraveler(null);
+  };
+
+  const handleDelete = (id) => {
+    onSaveTravelers(travelers.filter((t) => t.id !== id));
+    if (expanded === id) setExpanded(null);
+  };
+
+  const canAdd = travelers.length < 3;
+
+  return (
+    <div className="mb-8">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-white font-medium">Travelers</h3>
+        {totalCombined > 0 && (
+          <div className="text-right">
+            <p className="text-[10px] text-white/30 uppercase tracking-widest">Combined Wallet</p>
+            <p className="text-[#c9a84c] text-sm font-semibold">${totalCombined.toLocaleString()}</p>
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3">
+        <TravelerCard
+          name="Primary Traveler"
+          initial="P"
+          programs={profile?.loyaltyPrograms ?? []}
+          cards={profile?.creditCards ?? []}
+          value={primaryValue}
+          isPrimary
+          isExpanded={expanded === 'primary'}
+          onToggleExpand={() => setExpanded((p) => p === 'primary' ? null : 'primary')}
+        />
+
+        {travelers.map((t) => (
+          <TravelerCard
+            key={t.id}
+            name={t.nickname}
+            initial={(t.nickname[0] ?? '?').toUpperCase()}
+            programs={t.loyaltyPrograms ?? []}
+            cards={t.creditCards ?? []}
+            value={computeTravelerWalletValue(t)}
+            isPrimary={false}
+            isExpanded={expanded === t.id}
+            onToggleExpand={() => setExpanded((p) => p === t.id ? null : t.id)}
+            onEdit={() => { setEditingTraveler(t); setShowAddModal(true); }}
+            onDelete={() => handleDelete(t.id)}
+          />
+        ))}
+
+        {canAdd && (
+          <button
+            onClick={() => { setEditingTraveler(null); setShowAddModal(true); }}
+            className="flex-1 min-w-[130px] flex flex-col items-center justify-center gap-2 p-5 rounded-2xl border-2 border-dashed border-white/[0.1] hover:border-[#c9a84c]/35 hover:bg-[#c9a84c]/[0.03] transition-all duration-200 min-h-[88px]"
+          >
+            <div className="w-8 h-8 rounded-full border border-dashed border-white/20 flex items-center justify-center">
+              <PlusIcon className="w-3.5 h-3.5 text-white/30" />
+            </div>
+            <span className="text-white/30 text-xs">Add Traveler</span>
+          </button>
+        )}
+      </div>
+
+      {showAddModal && (
+        <AddTravelerModal
+          initial={editingTraveler}
+          onSave={handleSaveTraveler}
+          onClose={() => { setShowAddModal(false); setEditingTraveler(null); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function ProfileDashboard({ profile, usedCredits, onToggleCredit, onSave, onBack, travelers = [], onSaveTravelers }) {
   const [tab, setTab] = useState('wallet'); // 'wallet' | 'credits' | 'settings'
 
   const tabs = [
@@ -4005,6 +4425,7 @@ function ProfileDashboard({ profile, usedCredits, onToggleCredit, onSave, onBack
       <div className="flex-1 overflow-y-auto">
         <div className="px-5 py-7 max-w-2xl mx-auto w-full">
           <FlioScoreSection profile={profile} />
+          <TravelersSection profile={profile} travelers={travelers} onSaveTravelers={onSaveTravelers} />
           {tab === 'wallet'   && <WalletSection  profile={profile} />}
           {tab === 'credits'  && <CreditsSection profile={profile} usedCredits={usedCredits} onToggle={onToggleCredit} />}
           {tab === 'settings' && <SettingsSection profile={profile} onSave={onSave} />}
@@ -4394,6 +4815,9 @@ export default function App() {
   const [trips, setTrips] = useState(() => {
     try { return JSON.parse(localStorage.getItem(TRIPS_KEY)) || []; } catch { return []; }
   });
+  const [travelers, setTravelers] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('flio-travelers')) || []; } catch { return []; }
+  });
 
   const saveProfile = (p) => {
     setProfile(p);
@@ -4422,6 +4846,11 @@ export default function App() {
       localStorage.setItem(TRIPS_KEY, JSON.stringify(next));
       return next;
     });
+  };
+
+  const saveTravelers = (next) => {
+    setTravelers(next);
+    localStorage.setItem('flio-travelers', JSON.stringify(next));
   };
 
   const openDashboard = (from) => {
@@ -4486,6 +4915,7 @@ export default function App() {
                 trips={trips}
                 onSaveTrip={saveTrip}
                 onDeleteTrip={deleteTrip}
+                travelers={travelers}
               />
             )}
             {screen === 'dashboard' && (
@@ -4495,6 +4925,8 @@ export default function App() {
                 onToggleCredit={toggleCredit}
                 onSave={saveProfile}
                 onBack={() => setScreen(prevScreenRef.current)}
+                travelers={travelers}
+                onSaveTravelers={saveTravelers}
               />
             )}
           </>

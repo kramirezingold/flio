@@ -394,5 +394,21 @@ The user has already provided these trip details. Reference them directly — do
 
 - Destination: ${tripBrief.destination}${tripBrief.dates ? `\n- Dates: ${tripBrief.dates}` : ''}
 - Travelers: ${tripBrief.travelers} traveler${tripBrief.travelers > 1 ? 's' : ''}
-- Priority: ${tripBrief.priority}` : ''}`;
+- Priority: ${tripBrief.priority}` : ''}${tripBrief?.selectedTravelers?.length ? `
+
+---
+
+## ADDITIONAL TRAVELERS ON THIS TRIP
+
+Multiple travelers are included. Factor in ALL of their points and cards when making recommendations. Suggest split strategies — e.g., "Use Sarah's Hyatt points for the hotel, your Chase points for the flight." You can suggest booking each segment under whoever has better status or points for it.
+
+${tripBrief.selectedTravelers.map((t) => {
+  const progLines = (t.loyaltyPrograms ?? []).length
+    ? t.loyaltyPrograms.map((p) => `  - ${p.name}: ${p.balance > 0 ? p.balance.toLocaleString() + ' ' + p.currency : 'no balance set'}`).join('\n')
+    : '  - None';
+  const cardLines = (t.creditCards ?? []).length
+    ? t.creditCards.map((c) => `  - ${c.name}: ${c.balance > 0 ? c.balance.toLocaleString() + ' ' + c.currency : 'no balance set'}`).join('\n')
+    : '  - None';
+  return `### ${t.nickname}\n- Loyalty programs:\n${progLines}\n- Credit cards:\n${cardLines}`;
+}).join('\n\n')}` : ''}`;
 }
