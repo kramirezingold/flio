@@ -101,6 +101,31 @@ function PanelRightIcon({ className }) {
   );
 }
 
+function SunIcon({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <circle cx="12" cy="12" r="4" />
+      <path strokeLinecap="round" d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+    </svg>
+  );
+}
+
+function MoonIcon({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+    </svg>
+  );
+}
+
+function MenuIcon({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+  );
+}
+
 // ── Onboarding Data ────────────────────────────────────────────────────────
 
 const AIRPORTS = [
@@ -604,6 +629,43 @@ function DemoChat({ onGetStarted }) {
   );
 }
 
+// ── Theme ───────────────────────────────────────────────────────────────────
+
+function useTheme() {
+  const [isLight, setIsLight] = useState(() => {
+    try { return localStorage.getItem('flio-theme') === 'light'; } catch { return false; }
+  });
+  const toggle = () => setIsLight((prev) => {
+    const next = !prev;
+    try { localStorage.setItem('flio-theme', next ? 'light' : 'dark'); } catch {}
+    return next;
+  });
+  return { isLight, toggle };
+}
+
+function ThemeToggle({ isLight, onToggle }) {
+  return (
+    <button
+      onClick={onToggle}
+      className={`relative w-11 h-6 rounded-full flex items-center px-0.5 transition-colors duration-300 flex-shrink-0 ${
+        isLight ? 'bg-[#0d1526]/12' : 'bg-white/10'
+      }`}
+      aria-label={isLight ? 'Switch to dark mode' : 'Switch to light mode'}
+    >
+      <span
+        className={`flex items-center justify-center w-5 h-5 rounded-full shadow-sm transition-all duration-300 ${
+          isLight ? 'translate-x-5 bg-[#c9a84c]' : 'translate-x-0 bg-white/60'
+        }`}
+      >
+        {isLight
+          ? <SunIcon className="w-3 h-3 text-[#0d1526]" />
+          : <MoonIcon className="w-3 h-3 text-[#0a0f1e]" />
+        }
+      </span>
+    </button>
+  );
+}
+
 // ── Fade-in on scroll ──────────────────────────────────────────────────────
 
 function FadeInSection({ children }) {
@@ -642,29 +704,127 @@ function FadeInSection({ children }) {
 
 // ── Landing Page ───────────────────────────────────────────────────────────
 
-function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, onEditProfile }) {
+function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, onEditProfile, isLight, onToggleTheme }) {
+  const [scrolled, setScrolled]       = useState(false);
+  const [activeSection, setActiveSection] = useState(null);
+  const [menuOpen, setMenuOpen]       = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  useEffect(() => {
+    const ids = ['how-it-works', 'wallet', 'works-with', 'pricing'];
+    const observer = new IntersectionObserver(
+      (entries) => entries.forEach((e) => { if (e.isIntersecting) setActiveSection(e.target.id); }),
+      { threshold: 0.25, rootMargin: '-80px 0px -40% 0px' }
+    );
+    ids.forEach((id) => { const el = document.getElementById(id); if (el) observer.observe(el); });
+    return () => observer.disconnect();
+  }, []);
+
+  const scrollToSection = (id) => {
+    setMenuOpen(false);
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const NAV_LINKS = [
+    { label: 'How It Works', id: 'how-it-works' },
+    { label: 'Your Wallet',  id: 'wallet' },
+    { label: 'Works With',   id: 'works-with' },
+    { label: 'Pricing',      id: 'pricing' },
+  ];
+  const tBase = isLight ? '#0d1526'              : '#ffffff';
+  const tDim  = isLight ? 'rgba(13,21,38,0.52)'  : 'rgba(255,255,255,0.45)';
+
   return (
-    <div className="bg-[#0a0f1e] font-['DM_Sans',sans-serif] flex flex-col">
-      {/* Nav */}
-      <nav className="flex items-center justify-between px-6 py-5 sticky top-0 z-40 bg-[#0a0f1e]/80 backdrop-blur-md border-b border-white/[0.04]">
-        <div className="flex items-center gap-2">
-          <PlaneIcon className="w-5 h-5 text-[#c9a84c]" />
-          <span className="text-white font-semibold tracking-widest text-sm uppercase">Flio</span>
+    <div
+      className={`font-['DM_Sans',sans-serif] flex flex-col transition-colors duration-300 ${isLight ? 'bg-[#fafaf7] lm' : 'bg-[#0a0f1e]'}`}
+    >
+      {/* ── Sticky nav ── */}
+      <nav
+        className={`sticky top-0 z-50 flex items-center justify-between px-6 h-16 backdrop-blur-md transition-shadow duration-300 ${
+          scrolled ? (isLight ? 'shadow-[0_4px_24px_rgba(0,0,0,0.08)]' : 'shadow-[0_4px_32px_rgba(0,0,0,0.45)]') : ''
+        }`}
+        style={{
+          backgroundColor: isLight ? 'rgba(250,250,247,0.93)' : 'rgba(10,15,30,0.88)',
+          borderBottom: `1px solid ${isLight ? 'rgba(13,21,38,0.08)' : 'rgba(255,255,255,0.04)'}`,
+          transition: 'background-color 0.3s ease, box-shadow 0.3s ease',
+        }}
+      >
+        {/* Logo */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <PlaneIcon className="w-4 h-4 text-[#c9a84c]" />
+          <span className="font-semibold tracking-widest text-sm uppercase" style={{ color: tBase, transition: 'color 0.3s ease' }}>Flio</span>
         </div>
-        <div className="flex items-center gap-5">
-          {hasProfile && (
-            <button onClick={onEditProfile} className="text-sm text-white/60 hover:text-white transition-colors">
-              Edit profile
+
+        {/* Center links — desktop */}
+        <div className="hidden md:flex items-center gap-7">
+          {NAV_LINKS.map((link) => (
+            <button
+              key={link.id}
+              onClick={() => scrollToSection(link.id)}
+              className="text-sm transition-colors duration-200"
+              style={{ color: activeSection === link.id ? '#c9a84c' : tDim }}
+              onMouseEnter={(e) => { if (activeSection !== link.id) e.currentTarget.style.color = tBase; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = activeSection === link.id ? '#c9a84c' : tDim; }}
+            >
+              {link.label}
             </button>
-          )}
-          <button onClick={onOpenChat} className="text-sm text-white/60 hover:text-white transition-colors">
-            Open Chat
+          ))}
+        </div>
+
+        {/* Right */}
+        <div className="flex items-center gap-3">
+          <ThemeToggle isLight={isLight} onToggle={onToggleTheme} />
+          <button
+            onClick={onGetStarted}
+            className="hidden md:flex btn-gold items-center gap-1.5 bg-[#c9a84c] hover:bg-[#d4af37] text-[#060d1f] font-semibold px-5 py-2 rounded-full text-sm"
+          >
+            Get Started
           </button>
-          <button onClick={onOpenDashboard} className="text-white/40 hover:text-white transition-colors" aria-label="Profile">
-            <UserIcon className="w-5 h-5" />
+          <button
+            className="md:hidden transition-colors duration-200"
+            style={{ color: tDim }}
+            onClick={() => setMenuOpen((p) => !p)}
+            aria-label="Toggle menu"
+          >
+            {menuOpen ? <XIcon className="w-5 h-5" /> : <MenuIcon className="w-5 h-5" />}
           </button>
         </div>
       </nav>
+
+      {/* Mobile menu */}
+      {menuOpen && (
+        <div
+          className="sticky top-16 z-40 md:hidden px-6 py-4 flex flex-col gap-4 border-b"
+          style={{
+            backgroundColor: isLight ? '#fafaf7' : '#0a0f1e',
+            borderColor: isLight ? 'rgba(13,21,38,0.08)' : 'rgba(255,255,255,0.05)',
+            transition: 'background-color 0.3s ease',
+          }}
+        >
+          {NAV_LINKS.map((link) => (
+            <button
+              key={link.id}
+              onClick={() => scrollToSection(link.id)}
+              className="text-sm text-left"
+              style={{ color: activeSection === link.id ? '#c9a84c' : tDim }}
+            >
+              {link.label}
+            </button>
+          ))}
+          <button
+            onClick={onGetStarted}
+            className="btn-gold flex items-center justify-center gap-1.5 bg-[#c9a84c] hover:bg-[#d4af37] text-[#060d1f] font-semibold px-5 py-2.5 rounded-full text-sm mt-1"
+          >
+            Get Started
+          </button>
+        </div>
+      )}
 
       {/* Hero */}
       <div className="relative min-h-screen flex flex-col items-center justify-center px-6 text-center overflow-hidden">
@@ -678,7 +838,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.055) 1px, transparent 1px)',
+            backgroundImage: `radial-gradient(circle, ${isLight ? 'rgba(13,21,38,0.055)' : 'rgba(255,255,255,0.055)'} 1px, transparent 1px)`,
             backgroundSize: '36px 36px',
             maskImage: 'radial-gradient(ellipse 75% 75% at 50% 50%, black 0%, transparent 100%)',
             WebkitMaskImage: 'radial-gradient(ellipse 75% 75% at 50% 50%, black 0%, transparent 100%)',
@@ -701,7 +861,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
         </div>
 
         {/* Headline */}
-        <h1 className="relative text-5xl md:text-7xl text-white leading-tight tracking-tight mb-4 font-['Playfair_Display',serif] font-normal">
+        <h1 className="relative text-5xl md:text-7xl leading-tight tracking-tight mb-4 font-['Playfair_Display',serif] font-normal" style={{ color: tBase }}>
           <span className="block animate-word" style={{ animationDelay: '80ms' }}>Your points. Your perks.</span>
           <span className="block animate-word" style={{ animationDelay: '280ms' }}>
             <span className="text-[#c9a84c] italic">Finally working for you.</span>
@@ -744,7 +904,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
         {/* Bottom fade — blends hero glow into the next section */}
         <div
           className="absolute bottom-0 left-0 right-0 h-40 pointer-events-none"
-          style={{ background: 'linear-gradient(to bottom, transparent 0%, #0a0f1e 100%)' }}
+          style={{ background: `linear-gradient(to bottom, transparent 0%, ${isLight ? '#fafaf7' : '#0a0f1e'} 100%)` }}
         />
 
         {/* Scroll indicator */}
@@ -763,7 +923,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
 
       <FadeInSection>
         {/* How It Works */}
-        <div className="px-6 pb-32 max-w-5xl mx-auto w-full">
+        <div id="how-it-works" className="px-6 pb-32 max-w-5xl mx-auto w-full">
         <div className="text-center mb-14">
           <p className="text-[10px] text-[#c9a84c] uppercase tracking-widest mb-3">How it works</p>
           <h2 className="text-3xl md:text-4xl text-white font-['Playfair_Display',serif] font-normal">Smart travel advice in seconds.</h2>
@@ -796,7 +956,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
 
       <FadeInSection>
         {/* Points Portfolio Preview */}
-        <div className="px-6 pb-32 max-w-2xl mx-auto w-full">
+        <div id="wallet" className="px-6 pb-32 max-w-2xl mx-auto w-full">
         {/* Section header */}
         <div className="text-center mb-10">
           <p className="text-[10px] text-[#c9a84c] uppercase tracking-widest mb-3">Your Travel Wallet</p>
@@ -891,7 +1051,9 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
 
           {/* Frosted unlock overlay */}
           <div className="absolute bottom-0 left-0 right-0 h-56 flex flex-col items-center justify-end pb-8 gap-2.5"
-            style={{ background: 'linear-gradient(to bottom, transparent 0%, rgba(13,21,38,0.85) 35%, rgba(13,21,38,0.97) 60%, #0d1526 100%)' }}
+            style={{ background: isLight
+              ? 'linear-gradient(to bottom, transparent 0%, rgba(238,234,227,0.85) 35%, rgba(238,234,227,0.97) 60%, #eeeae3 100%)'
+              : 'linear-gradient(to bottom, transparent 0%, rgba(13,21,38,0.85) 35%, rgba(13,21,38,0.97) 60%, #0d1526 100%)' }}
           >
             <p className="text-white/35 text-xs tracking-wide">Your real balances. Your actual credits.</p>
             <button
@@ -908,7 +1070,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
 
       <FadeInSection>
         {/* What Flio Knows */}
-        <div className="px-6 pb-32 max-w-4xl mx-auto w-full">
+        <div id="works-with" className="px-6 pb-32 max-w-4xl mx-auto w-full">
           {/* Section header */}
           <div className="text-center mb-4">
           <p className="text-[10px] text-[#c9a84c] uppercase tracking-widest mb-3">Works With</p>
@@ -1037,13 +1199,13 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
 
       <FadeInSection>
         {/* CTA Banner */}
-        <div className="relative w-full px-6 py-32 flex flex-col items-center text-center overflow-hidden">
+        <div id="pricing" className="relative w-full px-6 py-32 flex flex-col items-center text-center overflow-hidden">
         {/* Radial gold glow */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{ background: 'radial-gradient(ellipse 70% 50% at 50% 50%, rgba(201,168,76,0.09) 0%, transparent 70%)' }}
         />
-        <h2 className="relative text-4xl md:text-6xl text-white leading-tight tracking-tight max-w-2xl mb-5 font-['Playfair_Display',serif] font-normal">
+        <h2 className="relative text-4xl md:text-6xl leading-tight tracking-tight max-w-2xl mb-5 font-['Playfair_Display',serif] font-normal" style={{ color: tBase }}>
           Your points are worth<br />more than you think.
         </h2>
         <p className="relative text-white/45 text-base md:text-lg max-w-sm mb-10 leading-relaxed">
@@ -2759,6 +2921,8 @@ function now() {
 // ── App Shell ──────────────────────────────────────────────────────────────
 
 export default function App() {
+  const { isLight, toggle: toggleTheme } = useTheme();
+
   const [screen, setScreen] = useState(() => {
     try {
       const p = JSON.parse(localStorage.getItem('flio-profile'));
@@ -2842,6 +3006,8 @@ export default function App() {
           onOpenDashboard={() => openDashboard('landing')}
           hasProfile={!!profile.homeAirport}
           onEditProfile={() => handleEditProfile('landing')}
+          isLight={isLight}
+          onToggleTheme={toggleTheme}
         />
       )}
       {screen === 'profile' && (
