@@ -4703,25 +4703,24 @@ function PricingPage({ isLight, onToggleTheme }) {
 
       {/* Pricing cards */}
       <div className="px-6 max-w-5xl mx-auto pb-24">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
           {PLANS.map((plan) => (
             <div
               key={plan.id}
               className={`relative rounded-2xl border p-7 flex flex-col transition-all duration-300 ${
                 plan.popular
-                  ? 'border-[#c9a84c]/40 bg-[#0d1526] shadow-[0_0_48px_rgba(201,168,76,0.14),0_12px_40px_rgba(0,0,0,0.5)] md:scale-[1.04] md:-translate-y-2 z-10'
+                  ? 'border-[#c9a84c]/40 bg-[#0d1526] shadow-[0_0_48px_rgba(201,168,76,0.14),0_12px_40px_rgba(0,0,0,0.5)]'
                   : 'border-white/[0.08] bg-white/[0.03]'
               }`}
             >
-              {plan.popular && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <span className="bg-[#c9a84c] text-[#060d1f] text-xs font-bold px-4 py-1.5 rounded-full tracking-wide uppercase">
-                    Most Popular
-                  </span>
-                </div>
-              )}
-
               <div className="mb-5">
+                {plan.popular && (
+                  <div className="mb-3">
+                    <span className="bg-[#c9a84c] text-[#060d1f] text-[11px] font-bold px-3 py-1 rounded-full tracking-wide uppercase">
+                      Most Popular
+                    </span>
+                  </div>
+                )}
                 <h3 className="text-white font-semibold text-lg mb-0.5">{plan.name}</h3>
                 <p className="text-white/35 text-xs mb-5">{plan.desc}</p>
                 <div className="flex items-end gap-1.5">
