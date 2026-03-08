@@ -1889,13 +1889,6 @@ async function downloadTripPDF(intelligence, realResults, flightPointsAdvice, ho
 
   // ── Layout primitives ────────────────────────────────────────────────────
 
-  // Draw a labelled section card (rounded rect background)
-  const openCard = (topPad = 10) => {
-    // returns the card's top y — card is closed with closeCard()
-    const cardY = y - topPad;
-    return cardY;
-  };
-
   const sectionLabel = (text) => {
     checkBreak(32);
     doc.setFont('helvetica', 'bold');
@@ -1954,32 +1947,7 @@ async function downloadTripPDF(intelligence, realResults, flightPointsAdvice, ho
     y += rowH;
   };
 
-  const adviceLine = (text) => {
-    if (!text) return;
-    const lines = doc.splitTextToSize(`Points tip: ${text}`, CW - 8);
-    const h = lines.length * 11 + 6;
-    checkBreak(h + 4);
-    // subtle gold tinted bg pill
-    doc.setFillColor(201, 168, 76, 0.08);
-    doc.setDrawColor(...goldDim);
-    doc.setLineWidth(0.3);
-    doc.roundedRect(ML, y - 9, CW, h, 3, 3, 'S');
-    doc.setFont('helvetica', 'italic');
-    doc.setFontSize(8);
-    doc.setTextColor(...gold);
-    doc.text(lines, ML + 6, y);
-    y += h + 2;
-  };
-
   const gap = (n = 10) => { y += n; };
-
-  const divider = () => {
-    checkBreak(14);
-    doc.setDrawColor(255, 255, 255, 0.06);
-    doc.setLineWidth(0.3);
-    doc.line(ML, y, ML + CW, y);
-    gap(10);
-  };
 
   // ══════════════════════════════════════════════════════════════════════════
   // PAGE 1 — Trip header + Strategy
