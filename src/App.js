@@ -1671,14 +1671,17 @@ async function fetchSerpFlights(ctx) {
       departure_id: ctx.originCode,
       arrival_id: ctx.destinationCode,
       outbound_date: ctx.checkIn,
+      type: '2',        // one-way — avoids round-trip requiring a return_date
       adults: String(ctx.travelers || 1),
       currency: 'USD',
       hl: 'en',
+      gl: 'us',
     });
     const res = await fetch(`/api/serp?${params}`);
     const data = await res.json();
+    if (data._serpError) return { _error: data._serpError };
     const results = [...(data.best_flights || []), ...(data.other_flights || [])];
-    return results.slice(0, 3);
+    return results.length > 0 ? results.slice(0, 3) : null;
   } catch {
     return null;
   }
@@ -3316,19 +3319,23 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
         fetchSerpHotels(ctx),
       ]);
 
-      if (!flightsData && !hotelsData) {
+      // Normalize: treat _error sentinel as null
+      const flights = Array.isArray(flightsData) ? flightsData : null;
+      const hotels  = Array.isArray(hotelsData)  ? hotelsData  : null;
+
+      if (!flights && !hotels) {
         setRealResultsError(true);
       } else {
-        const results = { flights: flightsData || [], hotels: hotelsData || [] };
+        const results = { flights: flights || [], hotels: hotels || [] };
         setRealResults(results);
 
         // Fire points advice calls in parallel after data loads
-        (flightsData || []).forEach((flight, i) => {
+        (flights || []).forEach((flight, i) => {
           getFlightPointsAdvice(clientRef.current, flight, profile).then((advice) => {
             if (advice) setFlightPointsAdvice((prev) => ({ ...prev, [i]: advice }));
           });
         });
-        (hotelsData || []).forEach((hotel, i) => {
+        (hotels || []).forEach((hotel, i) => {
           getHotelPointsAdvice(clientRef.current, hotel, profile).then((advice) => {
             if (advice) setHotelPointsAdvice((prev) => ({ ...prev, [i]: advice }));
           });

@@ -16,6 +16,10 @@ export default async function handler(req, res) {
   try {
     const upstream = await fetch(url);
     const data = await upstream.json();
+    // Surface SerpApi errors so the client can see them
+    if (data.error) {
+      return res.status(200).json({ _serpError: data.error, ...data });
+    }
     res.status(upstream.status).json(data);
   } catch (err) {
     res.status(502).json({ error: 'Failed to reach SerpApi' });
