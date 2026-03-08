@@ -1664,8 +1664,7 @@ async function extractTripContext(client, messages) {
 }
 
 async function fetchSerpFlights(ctx) {
-  const key = process.env.REACT_APP_SERPAPI_KEY;
-  if (!key || !ctx?.originCode || !ctx?.destinationCode || !ctx?.checkIn) return null;
+  if (!ctx?.originCode || !ctx?.destinationCode || !ctx?.checkIn) return null;
   try {
     const params = new URLSearchParams({
       engine: 'google_flights',
@@ -1676,9 +1675,8 @@ async function fetchSerpFlights(ctx) {
       adults: String(ctx.travelers || 1),
       currency: 'USD',
       hl: 'en',
-      api_key: key,
     });
-    const res = await fetch(`https://serpapi.com/search.json?${params}`);
+    const res = await fetch(`/api/serp?${params}`);
     const data = await res.json();
     return (data.best_flights || data.other_flights || []).slice(0, 3);
   } catch {
@@ -1687,8 +1685,7 @@ async function fetchSerpFlights(ctx) {
 }
 
 async function fetchSerpHotels(ctx) {
-  const key = process.env.REACT_APP_SERPAPI_KEY;
-  if (!key || !ctx?.destinationCity || !ctx?.checkIn || !ctx?.checkOut) return null;
+  if (!ctx?.destinationCity || !ctx?.checkIn || !ctx?.checkOut) return null;
   try {
     const params = new URLSearchParams({
       engine: 'google_hotels',
@@ -1697,9 +1694,8 @@ async function fetchSerpHotels(ctx) {
       check_out_date: ctx.checkOut,
       adults: String(ctx.travelers || 1),
       currency: 'USD',
-      api_key: key,
     });
-    const res = await fetch(`https://serpapi.com/search.json?${params}`);
+    const res = await fetch(`/api/serp?${params}`);
     const data = await res.json();
     return (data.properties || []).slice(0, 3);
   } catch {
