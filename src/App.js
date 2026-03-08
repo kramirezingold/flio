@@ -2375,7 +2375,7 @@ function TripIntelligencePanel({ intelligence, loading, activeTab, onTabChange, 
     { id: 'overview', label: 'Overview' },
     { id: 'checklist', label: 'Checklist' },
     { id: 'strategy', label: 'Strategy' },
-    { id: 'flights', label: 'Search' },
+    { id: 'flights', label: 'Flights & Hotels' },
   ];
   const isEmpty = !intelligence;
   const [copied, setCopied] = useState(false);
@@ -3068,6 +3068,7 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
   useEffect(() => { intelligenceRef.current = intelligence; }, [intelligence]);
   const [intelligenceLoading, setIntelligenceLoading] = useState(false);
   const [activeIntelTab, setActiveIntelTab] = useState('overview');
+  const activeIntelTabRef = useRef('overview');
   const [newTabIndicators, setNewTabIndicators] = useState({ overview: false, checklist: false, strategy: false, flights: false });
   const [mobileIntelOpen, setMobileIntelOpen] = useState(false);
 
@@ -3276,7 +3277,12 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
       const intel = await getIntelligenceData(clientRef.current, history, fullText, profileCtx);
       if (intel) {
         setIntelligence(intel);
-        setNewTabIndicators({ overview: true, checklist: true, strategy: true });
+        setNewTabIndicators((prev) => ({
+          overview: activeIntelTabRef.current !== 'overview',
+          checklist: activeIntelTabRef.current !== 'checklist',
+          strategy: activeIntelTabRef.current !== 'strategy',
+          flights: prev.flights,
+        }));
         saveTripSnapshot(finalMessages, intel);
       }
 
@@ -3303,6 +3309,7 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
   };
 
   const handleIntelTabChange = (tab) => {
+    activeIntelTabRef.current = tab;
     setActiveIntelTab(tab);
     setNewTabIndicators((prev) => ({ ...prev, [tab]: false }));
   };
@@ -3526,7 +3533,7 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
                   onClick={handleSearchRealResults}
                   className="flex items-center gap-2 text-sm bg-[#c9a84c]/10 border border-[#c9a84c]/30 text-[#c9a84c] hover:bg-[#c9a84c]/18 hover:border-[#c9a84c]/50 rounded-full px-5 py-2.5 transition-all"
                 >
-                  🔍 Search Real Flights &amp; Hotels
+                  🔍 Search Flights &amp; Hotels
                 </button>
               </div>
             )}
