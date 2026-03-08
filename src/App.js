@@ -1887,9 +1887,6 @@ async function downloadTripPDF(intelligence) {
 }
 
 function FlightCard({ flight, isLight = false }) {
-  const [imgError, setImgError] = useState(false);
-  const imgUrl = `https://picsum.photos/seed/${encodeURIComponent(flight.destinationCity)}/600/200`;
-
   const badgeColors = {
     'Best Value': '#c9a84c',
     'Fastest': '#60a5fa',
@@ -1905,29 +1902,17 @@ function FlightCard({ flight, isLight = false }) {
 
   return (
     <div className="rounded-2xl overflow-hidden border border-white/[0.08] bg-[#0d1526]">
-      {/* Destination photo */}
-      <div className="relative h-32 overflow-hidden flex-shrink-0">
-        {!imgError ? (
-          <img
-            src={imgUrl}
-            alt={flight.destinationCity}
-            className="w-full h-full object-cover"
-            onError={() => setImgError(true)}
-          />
-        ) : (
-          <div className="w-full h-full" style={{ background: isLight ? 'linear-gradient(135deg, #ecddc0, #d4c090)' : 'linear-gradient(135deg, #111d35, #0d1526)' }} />
-        )}
-        <div className="absolute inset-0 pointer-events-none" style={{ background: isLight ? 'linear-gradient(to top, rgba(236,221,192,0.85) 0%, transparent 100%)' : 'linear-gradient(to top, rgba(13,21,38,0.75) 0%, transparent 100%)' }} />
-        {/* Badge */}
+      {/* Destination header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
+        <div className="flex items-center gap-2">
+          <PlaneIcon className="w-3.5 h-3.5 text-[#c9a84c]/60 flex-shrink-0" />
+          <p className="text-white/80 text-sm font-medium">{flight.destinationCity}, {flight.destinationCountry}</p>
+        </div>
         <div
-          className="absolute top-3 right-3 text-[10px] font-semibold px-2.5 py-1 rounded-full"
+          className="text-[10px] font-semibold px-2.5 py-1 rounded-full flex-shrink-0"
           style={{ backgroundColor: `${badgeColor}22`, color: badgeColor, border: `1px solid ${badgeColor}50` }}
         >
           {flight.badge}
-        </div>
-        {/* Destination label */}
-        <div className="absolute bottom-2.5 left-4">
-          <p className="text-white/80 text-xs font-medium">{flight.destinationCity}, {flight.destinationCountry}</p>
         </div>
       </div>
 
@@ -2274,12 +2259,9 @@ function TripIntelligencePanel({ intelligence, loading, activeTab, onTabChange, 
               }`}
             >
               {tab.label}
-              {/* Gold dot: new intel data for overview/checklist/strategy, or flights loaded */}
+              {/* Gold dot: new intel data available (not shown for flights — user triggers that load) */}
               {tab.id !== 'flights' && newIndicators?.[tab.id] && activeTab !== tab.id && (
                 <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c] animate-pulse flex-shrink-0 self-start mt-0.5" />
-              )}
-              {tab.id === 'flights' && flights && activeTab !== 'flights' && (
-                <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c] flex-shrink-0 self-start mt-0.5" />
               )}
             </button>
           ))}
@@ -2931,7 +2913,7 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
   useEffect(() => { intelligenceRef.current = intelligence; }, [intelligence]);
   const [intelligenceLoading, setIntelligenceLoading] = useState(false);
   const [activeIntelTab, setActiveIntelTab] = useState('overview');
-  const [newTabIndicators, setNewTabIndicators] = useState({ overview: false, checklist: false, strategy: false });
+  const [newTabIndicators, setNewTabIndicators] = useState({ overview: false, checklist: false, strategy: false, flights: false });
   const [mobileIntelOpen, setMobileIntelOpen] = useState(false);
 
   // Flights tab state
@@ -2959,7 +2941,7 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
     setSidebarOpen(false);
     setIntelligence(null);
     setFlights(null);
-    setNewTabIndicators({ overview: false, checklist: false, strategy: false });
+    setNewTabIndicators({ overview: false, checklist: false, strategy: false, flights: false });
     setShowTripBrief(true);
   };
 
@@ -2972,7 +2954,7 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
     setSidebarOpen(false);
     setIntelligence(trip.intelligence ?? null);
     setFlights(null);
-    setNewTabIndicators({ overview: false, checklist: false, strategy: false });
+    setNewTabIndicators({ overview: false, checklist: false, strategy: false, flights: false });
   };
 
   const submitBrief = async (brief) => {
@@ -3165,6 +3147,8 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
       setFlights(result);
       setFlightsLoading(false);
     }
+    // Clear the flights dot when the tab is opened
+    setNewTabIndicators((prev) => ({ ...prev, flights: false }));
   };
 
   const intelligencePanelProps = {
@@ -3280,7 +3264,7 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
             aria-label="Trip intelligence"
           >
             <PanelRightIcon className="w-5 h-5" />
-            {(newTabIndicators.overview || newTabIndicators.checklist || newTabIndicators.strategy) && (
+            {(newTabIndicators.overview || newTabIndicators.checklist || newTabIndicators.strategy || newTabIndicators.flights) && (
               <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#c9a84c]" />
             )}
           </button>
