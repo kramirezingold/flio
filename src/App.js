@@ -1640,52 +1640,109 @@ async function getIntelligenceData(client, history, assistantText, profileCtx) {
   }
 }
 
-async function getFlightData(client, messages) {
+// ── SerpApi / trip context utilities ────────────────────────────────────────
+
+async function extractTripContext(client, messages) {
   try {
-    const history = messages
-      .filter((m) => m.text)
-      .map((m) => ({ role: m.role, content: m.text }));
+    const history = messages.filter((m) => m.text).map((m) => ({ role: m.role, content: m.text }));
     const response = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1500,
+      max_tokens: 300,
       messages: [
         ...history,
         {
           role: 'user',
-          content:
-            'Based on this trip conversation, generate 3 realistic business class flight options as JSON. Return ONLY a JSON array with no other text. Each object should have: airline, flightType, route, departure, arrival, duration, stops, stopCity, pointsCost, pointsProgram, cashPrice, badge (one of: Best Value, Fastest, Recommended), destinationCity, destinationCountry. Use realistic airlines and times for this route.',
+          content: 'Extract trip details from this conversation. Return ONLY valid JSON, no other text: { "originCode": "3-letter IATA airport code", "destinationCode": "3-letter IATA airport code", "destinationCity": "city name", "checkIn": "YYYY-MM-DD", "checkOut": "YYYY-MM-DD", "travelers": 1 }. Use null for any field not mentioned. If only a month is mentioned for dates use the 1st. Assume year 2025 if not specified.',
         },
       ],
     });
-    const raw = response.content[0].text
-      .trim()
-      .replace(/^```(?:json)?\s*/i, '')
-      .replace(/\s*```$/, '')
-      .trim();
+    const raw = response.content[0].text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
     return JSON.parse(raw);
-  } catch (err) {
-    console.error('[Flio flights error]', err);
+  } catch {
     return null;
   }
 }
 
-function getAwardSearchUrl(airline) {
-  const a = (airline ?? '').toLowerCase();
-  if (a.includes('united')) return 'https://www.united.com/en/us/flight-search/book-a-flight';
-  if (a.includes('american')) return 'https://www.aa.com/booking/find-flights';
-  if (a.includes('delta')) return 'https://www.delta.com/us/en/flight-search/book-a-flight';
-  if (a.includes('lufthansa')) return 'https://www.miles-and-more.com/row/en/use/flight-reward/redeem.html';
-  if (a.includes('air france') || a.includes('klm')) return 'https://www.flyingblue.com/en/spend/flights/reward-flights';
-  if (a.includes('british')) return 'https://www.britishairways.com/travel/redeem/execclub/_gf/en_us';
-  if (a.includes('emirates')) return 'https://www.emirates.com/us/english/skyrewards/';
-  if (a.includes('singapore')) return 'https://www.singaporeair.com/en_UK/us/plan-travel/krisflyer/use-miles/';
-  if (a.includes('turkish')) return 'https://www.turkishairlines.com/en-us/miles-and-smiles/';
-  if (a.includes('swiss') || a.includes('austrian')) return 'https://www.miles-and-more.com/row/en/use/flight-reward/redeem.html';
-  if (a.includes('cathay')) return 'https://www.cathaypacific.com/cx/en_US/asia-miles/use-miles/flights.html';
-  if (a.includes('ana')) return 'https://www.ana.co.jp/en/us/amc/';
-  if (a.includes('japan') || a.includes('jal')) return 'https://www.jal.com/en/jalmileagebank/guide/award/';
-  if (a.includes('avianca') || a.includes('lifemiles')) return 'https://www.lifemiles.com/mer/web/exchange/flight';
-  return 'https://www.google.com/flights';
+async function fetchSerpFlights(ctx) {
+  const key = process.env.REACT_APP_SERPAPI_KEY;
+  if (!key || !ctx?.originCode || !ctx?.destinationCode || !ctx?.checkIn) return null;
+  try {
+    const params = new URLSearchParams({
+      engine: 'google_flights',
+      departure_id: ctx.originCode,
+      arrival_id: ctx.destinationCode,
+      outbound_date: ctx.checkIn,
+      travel_class: '2',
+      adults: String(ctx.travelers || 1),
+      currency: 'USD',
+      hl: 'en',
+      api_key: key,
+    });
+    const res = await fetch(`https://serpapi.com/search.json?${params}`);
+    const data = await res.json();
+    return (data.best_flights || data.other_flights || []).slice(0, 3);
+  } catch {
+    return null;
+  }
+}
+
+async function fetchSerpHotels(ctx) {
+  const key = process.env.REACT_APP_SERPAPI_KEY;
+  if (!key || !ctx?.destinationCity || !ctx?.checkIn || !ctx?.checkOut) return null;
+  try {
+    const params = new URLSearchParams({
+      engine: 'google_hotels',
+      q: `${ctx.destinationCity} hotels`,
+      check_in_date: ctx.checkIn,
+      check_out_date: ctx.checkOut,
+      adults: String(ctx.travelers || 1),
+      currency: 'USD',
+      api_key: key,
+    });
+    const res = await fetch(`https://serpapi.com/search.json?${params}`);
+    const data = await res.json();
+    return (data.properties || []).slice(0, 3);
+  } catch {
+    return null;
+  }
+}
+
+async function getFlightPointsAdvice(client, flight, profile) {
+  try {
+    const price = flight.price ?? '';
+    const programs = (profile.loyaltyPrograms || []).map((p) => p.shortName).join(', ') || 'none';
+    const cards = (profile.creditCards || []).map((c) => c.shortName).join(', ') || 'none';
+    const response = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 80,
+      messages: [{
+        role: 'user',
+        content: `Flight costs $${price}. User programs: ${programs}. Cards: ${cards}. Give ONE short line of points advice: "Use [X] [Program] points → save $[amount]" OR "Pay with [Card] → earn [X] points". Real numbers only. No explanation.`,
+      }],
+    });
+    return response.content[0].text.trim();
+  } catch {
+    return null;
+  }
+}
+
+async function getHotelPointsAdvice(client, hotel, profile) {
+  try {
+    const price = hotel.rate_per_night?.extracted_lowest ?? hotel.price?.extracted_lowest ?? '';
+    const programs = (profile.loyaltyPrograms || []).map((p) => p.shortName).join(', ') || 'none';
+    const cards = (profile.creditCards || []).map((c) => c.shortName).join(', ') || 'none';
+    const response = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 80,
+      messages: [{
+        role: 'user',
+        content: `Hotel: ${hotel.name}. ~$${price}/night. User programs: ${programs}. Cards: ${cards}. Give ONE short line: "Use [X] [Program] points → free night" OR "Book with [Card] → earn [X] points" OR "[Status] perk: [upgrade/breakfast]". Real numbers. No explanation.`,
+      }],
+    });
+    return response.content[0].text.trim();
+  } catch {
+    return null;
+  }
 }
 
 // ── Trip Intelligence Panel ─────────────────────────────────────────────────
@@ -1886,97 +1943,148 @@ async function downloadTripPDF(intelligence) {
   doc.save(filename);
 }
 
-function FlightCard({ flight, isLight = false }) {
-  const badgeColors = {
-    'Best Value': '#c9a84c',
-    'Fastest': '#60a5fa',
-    'Recommended': '#34d399',
-  };
-  const badgeColor = badgeColors[flight.badge] ?? '#c9a84c';
-  const awardUrl = getAwardSearchUrl(flight.airline);
+// ── Real Flight Card ─────────────────────────────────────────────────────────
 
-  const [origin, dest] = (flight.route ?? '').split('→').map((s) => s.trim());
-  const stopsLabel = flight.stops === 0
+function RealFlightCard({ flight, pointsAdvice }) {
+  const legs = flight.flights || [];
+  const firstLeg = legs[0] || {};
+  const lastLeg = legs[legs.length - 1] || {};
+  const airline = firstLeg.airline || 'Unknown Airline';
+  const airlineLogo = firstLeg.airline_logo;
+  const departure = firstLeg.departure_airport || {};
+  const arrival = lastLeg.arrival_airport || {};
+  const stops = Math.max(0, legs.length - 1);
+  const layoverCity = flight.layovers?.[0]?.name;
+  const stopsLabel = stops === 0
     ? 'Nonstop'
-    : `${flight.stops} stop${flight.stops !== 1 ? 's' : ''}${flight.stopCity ? ` via ${flight.stopCity}` : ''}`;
+    : `${stops} stop${stops !== 1 ? 's' : ''}${layoverCity ? ` via ${layoverCity}` : ''}`;
+  const totalMins = flight.total_duration;
+  const duration = totalMins ? `${Math.floor(totalMins / 60)}h ${totalMins % 60}m` : '';
 
   return (
-    <div className="rounded-2xl overflow-hidden border border-white/[0.08] bg-[#0d1526]">
-      {/* Destination header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
-        <div className="flex items-center gap-2">
-          <PlaneIcon className="w-3.5 h-3.5 text-[#c9a84c]/60 flex-shrink-0" />
-          <p className="text-white/80 text-sm font-medium">{flight.destinationCity}, {flight.destinationCountry}</p>
-        </div>
-        <div
-          className="text-[10px] font-semibold px-2.5 py-1 rounded-full flex-shrink-0"
-          style={{ backgroundColor: `${badgeColor}22`, color: badgeColor, border: `1px solid ${badgeColor}50` }}
-        >
-          {flight.badge}
-        </div>
-      </div>
-
-      {/* Details */}
-      <div className="px-4 pt-3 pb-4">
+    <div className="rounded-xl border border-white/[0.08] bg-[#0d1526] mb-3">
+      <div className="px-4 py-3">
         {/* Airline */}
-        <p className="text-white/85 text-sm font-medium mb-2">{flight.airline}</p>
-
-        {/* Route + stops */}
-        <div className="flex items-center gap-1.5 mb-2">
-          <span className="text-white/75 text-sm font-mono tracking-wide">{origin}</span>
+        <div className="flex items-center gap-2 mb-3">
+          {airlineLogo && (
+            <img src={airlineLogo} alt={airline} className="h-5 w-auto object-contain flex-shrink-0" />
+          )}
+          <span className="text-white/80 text-sm font-medium">{airline}</span>
+        </div>
+        {/* Route */}
+        <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+          <span className="text-white/75 text-sm font-mono tracking-wide">{departure.id}</span>
           <span className="text-white/25 text-xs">→</span>
-          <span className="text-white/75 text-sm font-mono tracking-wide">{dest}</span>
+          <span className="text-white/75 text-sm font-mono tracking-wide">{arrival.id}</span>
           <span className="text-white/30 text-[11px] ml-1">· {stopsLabel}</span>
         </div>
-
         {/* Times + duration */}
-        <div className="flex items-center gap-1.5 text-xs text-white/45 mb-3">
-          <span>{flight.departure}</span>
-          <span className="text-white/20">→</span>
-          <span>{flight.arrival}</span>
-          <span className="text-white/25">·</span>
-          <span>{flight.duration}</span>
+        <div className="flex items-center gap-1.5 text-xs text-white/40 mb-3 flex-wrap">
+          {departure.time && <span>{departure.time}</span>}
+          {departure.time && arrival.time && <span className="text-white/20">→</span>}
+          {arrival.time && <span>{arrival.time}</span>}
+          {duration && <><span className="text-white/20">·</span><span>{duration}</span></>}
         </div>
-
-        {/* Points + cash */}
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <span className="text-[#c9a84c] text-sm font-semibold">
-              {typeof flight.pointsCost === 'number' ? flight.pointsCost.toLocaleString() : flight.pointsCost}
-            </span>
-            <span className="text-white/40 text-xs ml-1">{flight.pointsProgram} pts</span>
-          </div>
-          <span className="text-white/30 text-xs">
-            vs ${typeof flight.cashPrice === 'number' ? flight.cashPrice.toLocaleString() : flight.cashPrice} cash
+        {/* Price */}
+        <div className="flex items-baseline gap-1.5 mb-2">
+          <span className="text-white text-lg font-bold">
+            {flight.price != null ? `$${flight.price.toLocaleString()}` : '—'}
           </span>
+          <span className="text-white/30 text-xs">per person · business</span>
         </div>
-
+        {/* Points advice */}
+        {pointsAdvice && (
+          <p className="text-[#c9a84c]/80 text-xs mb-3 leading-relaxed">✨ {pointsAdvice}</p>
+        )}
         {/* CTA */}
         <a
-          href={awardUrl}
+          href="https://www.google.com/flights"
           target="_blank"
           rel="noopener noreferrer"
           className="block w-full text-center text-xs text-[#c9a84c]/65 border border-[#c9a84c]/20 hover:border-[#c9a84c]/45 hover:text-[#c9a84c] hover:bg-[#c9a84c]/[0.04] rounded-lg py-2 transition-all"
         >
-          Search Award Space →
+          Book on Google Flights →
         </a>
       </div>
     </div>
   );
 }
 
-function FlightsTab({ flights, loading, isLight = false }) {
+// ── Real Hotel Card ──────────────────────────────────────────────────────────
+
+function RealHotelCard({ hotel, pointsAdvice }) {
+  const [imgError, setImgError] = useState(false);
+  const thumbnail = hotel.images?.[0]?.thumbnail || hotel.thumbnail;
+  const pricePerNight = hotel.rate_per_night?.lowest;
+  const rating = hotel.overall_rating;
+  const reviews = hotel.reviews;
+  const stars = hotel.hotel_class;
+
+  return (
+    <div className="rounded-xl border border-white/[0.08] bg-[#0d1526] mb-3 overflow-hidden">
+      {thumbnail && !imgError && (
+        <img
+          src={thumbnail}
+          alt={hotel.name}
+          className="w-full h-28 object-cover"
+          onError={() => setImgError(true)}
+        />
+      )}
+      <div className="px-4 py-3">
+        {/* Name + stars */}
+        <div className="flex items-start justify-between gap-2 mb-1.5">
+          <p className="text-white/85 text-sm font-medium leading-tight">{hotel.name}</p>
+          {stars && (
+            <span className="text-[#c9a84c]/60 text-[10px] flex-shrink-0 mt-0.5">
+              {'★'.repeat(Math.min(5, stars))}
+            </span>
+          )}
+        </div>
+        {/* Rating */}
+        {rating && (
+          <p className="text-white/35 text-xs mb-2">
+            ⭐ {rating}{reviews ? ` · ${reviews.toLocaleString()} reviews` : ''}
+          </p>
+        )}
+        {/* Price */}
+        <div className="flex items-baseline gap-1 mb-2">
+          {pricePerNight
+            ? <span className="text-white text-base font-bold">{pricePerNight}</span>
+            : <span className="text-white/40 text-sm">Price varies</span>
+          }
+          {pricePerNight && <span className="text-white/30 text-xs">/night</span>}
+        </div>
+        {/* Points advice */}
+        {pointsAdvice && (
+          <p className="text-[#c9a84c]/80 text-xs mb-3 leading-relaxed">✨ {pointsAdvice}</p>
+        )}
+        {/* CTA */}
+        <a
+          href={hotel.link || 'https://www.google.com/travel/hotels'}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block w-full text-center text-xs text-[#c9a84c]/65 border border-[#c9a84c]/20 hover:border-[#c9a84c]/45 hover:text-[#c9a84c] hover:bg-[#c9a84c]/[0.04] rounded-lg py-2 transition-all"
+        >
+          View on Google Hotels →
+        </a>
+      </div>
+    </div>
+  );
+}
+
+// ── Flights & Hotels Tab ─────────────────────────────────────────────────────
+
+function FlightsHotelsTab({ results, loading, error, flightPointsAdvice, hotelPointsAdvice }) {
   if (loading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-3">
         {[0, 1, 2].map((i) => (
-          <div key={i} className="rounded-2xl overflow-hidden border border-white/[0.06] bg-[#0d1526] animate-pulse">
-            <div className="h-32 bg-white/[0.04]" />
-            <div className="px-4 py-4 space-y-2.5">
-              <div className="h-3.5 w-36 bg-white/[0.05] rounded" />
-              <div className="h-3 w-48 bg-white/[0.04] rounded" />
-              <div className="h-3 w-32 bg-white/[0.03] rounded" />
-              <div className="h-8 bg-white/[0.03] rounded-lg mt-3" />
+          <div key={i} className="rounded-xl border border-white/[0.06] bg-[#0d1526] animate-pulse">
+            <div className="px-4 py-3 space-y-2.5">
+              <div className="h-4 w-32 bg-white/[0.05] rounded" />
+              <div className="h-3 w-44 bg-white/[0.04] rounded" />
+              <div className="h-3 w-28 bg-white/[0.03] rounded" />
+              <div className="h-7 bg-white/[0.03] rounded-lg mt-2" />
             </div>
           </div>
         ))}
@@ -1984,25 +2092,67 @@ function FlightsTab({ flights, loading, isLight = false }) {
     );
   }
 
-  if (!flights) {
+  if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-center px-8 min-h-[260px] gap-4">
-        <div className="w-12 h-12 rounded-full bg-[#c9a84c]/8 border border-[#c9a84c]/15 flex items-center justify-center">
-          <PlaneIcon className="w-6 h-6 text-[#c9a84c]/25" />
+      <div className="flex flex-col items-center justify-center min-h-[200px] text-center px-6 gap-3">
+        <p className="text-white/35 text-sm">Could not load results</p>
+        <p className="text-white/20 text-xs leading-relaxed">Check Google Flights and Google Hotels directly</p>
+        <div className="flex gap-3 mt-1">
+          <a href="https://www.google.com/flights" target="_blank" rel="noopener noreferrer"
+            className="text-xs text-[#c9a84c]/65 border border-[#c9a84c]/20 hover:border-[#c9a84c]/40 rounded-lg px-3 py-1.5 transition-all">
+            Google Flights →
+          </a>
+          <a href="https://www.google.com/travel/hotels" target="_blank" rel="noopener noreferrer"
+            className="text-xs text-[#c9a84c]/65 border border-[#c9a84c]/20 hover:border-[#c9a84c]/40 rounded-lg px-3 py-1.5 transition-all">
+            Google Hotels →
+          </a>
         </div>
-        <p className="text-white/30 text-sm">Plan a trip in the chat to see flight options</p>
       </div>
     );
   }
 
+  if (!results) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[200px] text-center px-6 gap-3">
+        <PlaneIcon className="w-8 h-8 text-[#c9a84c]/20" />
+        <p className="text-white/30 text-sm">Use the search button in the chat to find real flights and hotels</p>
+      </div>
+    );
+  }
+
+  const hasFlights = results.flights?.length > 0;
+  const hasHotels = results.hotels?.length > 0;
+
   return (
-    <div className="space-y-4">
-      <p className="text-white/20 text-[11px] leading-relaxed">
-        Typical award availability for this route. Search directly with the airline to confirm.
-      </p>
-      {flights.map((flight, i) => (
-        <FlightCard key={i} flight={flight} isLight={isLight} />
-      ))}
+    <div>
+      {/* Flights section */}
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-base">✈️</span>
+        <p className="text-white/50 text-xs uppercase tracking-widest">Flights</p>
+      </div>
+      {hasFlights ? (
+        results.flights.map((flight, i) => (
+          <RealFlightCard key={i} flight={flight} pointsAdvice={flightPointsAdvice?.[i]} />
+        ))
+      ) : (
+        <p className="text-white/25 text-xs mb-4 px-1">No flight results found</p>
+      )}
+
+      {/* Divider */}
+      <div className="border-t border-white/[0.06] my-4" />
+
+      {/* Hotels section */}
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-base">🏨</span>
+        <p className="text-white/50 text-xs uppercase tracking-widest">Hotels</p>
+      </div>
+      {hasHotels ? (
+        results.hotels.map((hotel, i) => (
+          <RealHotelCard key={i} hotel={hotel} pointsAdvice={hotelPointsAdvice?.[i]} />
+        ))
+      ) : (
+        <p className="text-white/25 text-xs px-1">No hotel results found</p>
+      )}
     </div>
   );
 }
@@ -2215,12 +2365,12 @@ function StrategyTab({ strategy }) {
   );
 }
 
-function TripIntelligencePanel({ intelligence, loading, activeTab, onTabChange, newIndicators, onClearIndicator, onToggleChecklistItem, flights, flightsLoading, isLight = false }) {
+function TripIntelligencePanel({ intelligence, loading, activeTab, onTabChange, newIndicators, onClearIndicator, onToggleChecklistItem, realResults, realResultsLoading, realResultsError, flightPointsAdvice, hotelPointsAdvice, isLight = false }) {
   const tabs = [
     { id: 'overview', label: 'Overview' },
     { id: 'checklist', label: 'Checklist' },
     { id: 'strategy', label: 'Strategy' },
-    { id: 'flights', label: 'Flights' },
+    { id: 'flights', label: 'Search' },
   ];
   const isEmpty = !intelligence;
   const [copied, setCopied] = useState(false);
@@ -2278,7 +2428,7 @@ function TripIntelligencePanel({ intelligence, loading, activeTab, onTabChange, 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
         {activeTab === 'flights' ? (
-          <FlightsTab flights={flights} loading={flightsLoading} isLight={isLight} />
+          <FlightsHotelsTab results={realResults} loading={realResultsLoading} error={realResultsError} flightPointsAdvice={flightPointsAdvice} hotelPointsAdvice={hotelPointsAdvice} />
         ) : isEmpty && !loading ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-8 min-h-[260px] gap-4">
             <div className="w-12 h-12 rounded-full bg-[#c9a84c]/8 border border-[#c9a84c]/15 flex items-center justify-center">
@@ -2916,11 +3066,12 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
   const [newTabIndicators, setNewTabIndicators] = useState({ overview: false, checklist: false, strategy: false, flights: false });
   const [mobileIntelOpen, setMobileIntelOpen] = useState(false);
 
-  // Flights tab state
-  const [flights, setFlights] = useState(null);
-  const [flightsLoading, setFlightsLoading] = useState(false);
-  const flightsRef = useRef(null);
-  useEffect(() => { flightsRef.current = flights; }, [flights]);
+  // Flights & Hotels tab state
+  const [realResults, setRealResults] = useState(null);
+  const [realResultsLoading, setRealResultsLoading] = useState(false);
+  const [realResultsError, setRealResultsError] = useState(false);
+  const [flightPointsAdvice, setFlightPointsAdvice] = useState({});
+  const [hotelPointsAdvice, setHotelPointsAdvice] = useState({});
 
   const clientRef = useRef(
     new Anthropic({
@@ -2940,7 +3091,11 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
     setCurrentTripId(null);
     setSidebarOpen(false);
     setIntelligence(null);
-    setFlights(null);
+    setRealResults(null);
+    setRealResultsLoading(false);
+    setRealResultsError(false);
+    setFlightPointsAdvice({});
+    setHotelPointsAdvice({});
     setNewTabIndicators({ overview: false, checklist: false, strategy: false, flights: false });
     setShowTripBrief(true);
   };
@@ -2953,7 +3108,11 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
     setCurrentTripId(trip.id);
     setSidebarOpen(false);
     setIntelligence(trip.intelligence ?? null);
-    setFlights(null);
+    setRealResults(null);
+    setRealResultsLoading(false);
+    setRealResultsError(false);
+    setFlightPointsAdvice({});
+    setHotelPointsAdvice({});
     setNewTabIndicators({ overview: false, checklist: false, strategy: false, flights: false });
   };
 
@@ -3138,17 +3297,46 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
     }
   };
 
-  const handleIntelTabChange = async (tab) => {
+  const handleIntelTabChange = (tab) => {
     setActiveIntelTab(tab);
-    // Lazy-fetch flights on first click when a trip has been planned
-    if (tab === 'flights' && flightsRef.current === null && !flightsLoading && intelligenceRef.current !== null) {
-      setFlightsLoading(true);
-      const result = await getFlightData(clientRef.current, messagesRef.current);
-      setFlights(result);
-      setFlightsLoading(false);
+    setNewTabIndicators((prev) => ({ ...prev, [tab]: false }));
+  };
+
+  const handleSearchRealResults = async () => {
+    setRealResultsLoading(true);
+    setRealResultsError(false);
+    setActiveIntelTab('flights');
+
+    try {
+      const ctx = await extractTripContext(clientRef.current, messagesRef.current);
+      const [flightsData, hotelsData] = await Promise.all([
+        fetchSerpFlights(ctx),
+        fetchSerpHotels(ctx),
+      ]);
+
+      if (!flightsData && !hotelsData) {
+        setRealResultsError(true);
+      } else {
+        const results = { flights: flightsData || [], hotels: hotelsData || [] };
+        setRealResults(results);
+
+        // Fire points advice calls in parallel after data loads
+        (flightsData || []).forEach((flight, i) => {
+          getFlightPointsAdvice(clientRef.current, flight, profile).then((advice) => {
+            if (advice) setFlightPointsAdvice((prev) => ({ ...prev, [i]: advice }));
+          });
+        });
+        (hotelsData || []).forEach((hotel, i) => {
+          getHotelPointsAdvice(clientRef.current, hotel, profile).then((advice) => {
+            if (advice) setHotelPointsAdvice((prev) => ({ ...prev, [i]: advice }));
+          });
+        });
+      }
+    } catch {
+      setRealResultsError(true);
     }
-    // Clear the flights dot when the tab is opened
-    setNewTabIndicators((prev) => ({ ...prev, flights: false }));
+
+    setRealResultsLoading(false);
   };
 
   const intelligencePanelProps = {
@@ -3159,8 +3347,11 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
     newIndicators: newTabIndicators,
     onClearIndicator: (tab) => setNewTabIndicators((prev) => ({ ...prev, [tab]: false })),
     onToggleChecklistItem: toggleIntelligenceChecklistItem,
-    flights,
-    flightsLoading,
+    realResults,
+    realResultsLoading,
+    realResultsError,
+    flightPointsAdvice,
+    hotelPointsAdvice,
     isLight,
   };
 
@@ -3318,6 +3509,22 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
             ))}
             {isStreaming && messages[messages.length - 1]?.text === '' && (
               <TypingIndicator />
+            )}
+            {/* Search button — shown after first AI response, before real results are fetched */}
+            {messages.filter((m) => m.role === 'user').length > 0 && !isStreaming && !realResults && !realResultsLoading && (
+              <div className="flex justify-center py-3">
+                <button
+                  onClick={handleSearchRealResults}
+                  className="flex items-center gap-2 text-sm bg-[#c9a84c]/10 border border-[#c9a84c]/30 text-[#c9a84c] hover:bg-[#c9a84c]/18 hover:border-[#c9a84c]/50 rounded-full px-5 py-2.5 transition-all"
+                >
+                  🔍 Search Real Flights &amp; Hotels
+                </button>
+              </div>
+            )}
+            {realResultsLoading && (
+              <div className="flex justify-center py-3">
+                <p className="text-white/30 text-xs">Searching flights &amp; hotels…</p>
+              </div>
             )}
             <div ref={bottomRef} />
           </div>
