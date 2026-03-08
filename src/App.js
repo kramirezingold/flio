@@ -500,7 +500,7 @@ const DEMO = [
 // 5400 → assistant2 appears
 const SCHEDULE = [400, 900, 2800, 3600, 4100, 5400];
 
-function DemoChat({ onGetStarted }) {
+function DemoChat({ onGetStarted, isLight }) {
   const [visible, setVisible] = useState(false);
   const [step, setStep] = useState(0); // 0=hidden, 1=u1, 2=typing, 3=a1, 4=u2, 5=typing, 6=a2
   const sectionRef = useRef(null);
@@ -625,7 +625,7 @@ function DemoChat({ onGetStarted }) {
       {/* Bottom gradient fade */}
       <div
         className="pointer-events-none -mt-16 h-16"
-        style={{ background: 'linear-gradient(to bottom, transparent, #0a0f1e)' }}
+        style={{ background: `linear-gradient(to bottom, transparent, ${isLight ? '#f5e8ce' : '#0a0f1e'})` }}
       />
 
       {/* CTA */}
@@ -659,8 +659,8 @@ function ThemeToggle({ isLight, onToggle }) {
   return (
     <button
       onClick={onToggle}
-      className={`relative w-11 h-6 rounded-full flex items-center px-0.5 transition-colors duration-300 flex-shrink-0 ${
-        isLight ? 'bg-[#0d1526]/12' : 'bg-white/10'
+      className={`relative w-11 h-6 rounded-full flex items-center px-0.5 transition-colors duration-300 flex-shrink-0 border ${
+        isLight ? 'bg-[#c9a84c]/20 border-[#c9a84c]/40' : 'bg-white/10 border-transparent'
       }`}
       aria-label={isLight ? 'Switch to dark mode' : 'Switch to light mode'}
     >
@@ -847,7 +847,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
 
   return (
     <div
-      className={`font-['DM_Sans',sans-serif] flex flex-col transition-colors duration-300 ${isLight ? 'bg-[#f2ede3] lm' : ''}`}
+      className={`font-['DM_Sans',sans-serif] flex flex-col transition-colors duration-300 ${isLight ? 'bg-[#f5e8ce] lm' : ''}`}
     >
       {!isLight && <div className="noise-overlay" aria-hidden="true" />}
       {/* ── Sticky nav ── */}
@@ -856,7 +856,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
           scrolled ? (isLight ? 'shadow-[0_4px_24px_rgba(0,0,0,0.08)]' : 'shadow-[0_4px_32px_rgba(0,0,0,0.45)]') : ''
         }`}
         style={{
-          backgroundColor: isLight ? 'rgba(242,237,227,0.93)' : 'rgba(10,15,30,0.88)',
+          backgroundColor: isLight ? 'rgba(245,232,206,0.93)' : 'rgba(10,15,30,0.88)',
           borderBottom: `1px solid ${isLight ? 'rgba(13,21,38,0.08)' : 'rgba(255,255,255,0.04)'}`,
           transition: 'background-color 0.3s ease, box-shadow 0.3s ease',
         }}
@@ -915,7 +915,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
         <div
           className="sticky top-16 z-40 md:hidden px-6 py-4 flex flex-col gap-4 border-b"
           style={{
-            backgroundColor: isLight ? '#f2ede3' : '#0a0f1e',
+            backgroundColor: isLight ? '#f5e8ce' : '#0a0f1e',
             borderColor: isLight ? 'rgba(13,21,38,0.08)' : 'rgba(255,255,255,0.05)',
             transition: 'background-color 0.3s ease',
           }}
@@ -946,7 +946,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
       )}
 
       {/* Hero */}
-      <div id="home" className="relative min-h-screen flex flex-col items-center justify-center px-6 text-center overflow-hidden" style={{ backgroundColor: isLight ? undefined : '#080d1a' }}>
+      <div id="home" className="relative min-h-screen flex flex-col items-center justify-center px-6 text-center overflow-hidden" style={{ backgroundColor: isLight ? '#faf2e4' : '#080d1a' }}>
 
         {/* Star field — dark mode only */}
         {!isLight && <StarField />}
@@ -1070,7 +1070,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
         {/* Bottom fade — blends hero into wave divider */}
         <div
           className="absolute bottom-0 left-0 right-0 h-40 pointer-events-none"
-          style={{ background: `linear-gradient(to bottom, transparent 0%, ${isLight ? '#f2ede3' : '#080d1a'} 100%)` }}
+          style={{ background: `linear-gradient(to bottom, transparent 0%, ${isLight ? '#faf2e4' : '#080d1a'} 100%)` }}
         />
 
         {/* Scroll indicator */}
@@ -1081,23 +1081,23 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
       </div>
 
       {/* ── Wave: Hero → Demo ── */}
-      {!isLight && <SectionDivider topColor="#080d1a" bottomColor="#0d1526" />}
+      <SectionDivider topColor={isLight ? '#faf2e4' : '#080d1a'} bottomColor={isLight ? '#f5e8ce' : '#0d1526'} />
 
       {/* ── Demo ── */}
-      <div style={{ backgroundColor: isLight ? undefined : '#0d1526' }}>
+      <div style={{ backgroundColor: isLight ? '#f5e8ce' : '#0d1526' }}>
         <FadeInSection>
           {/* Demo chat */}
           <div id="demo" className="pt-20 pb-16">
-            <DemoChat onGetStarted={onGetStarted} />
+            <DemoChat onGetStarted={onGetStarted} isLight={isLight} />
           </div>
         </FadeInSection>
       </div>
 
       {/* ── Wave: Demo → Education block ── */}
-      {!isLight && <SectionDivider topColor="#0d1526" bottomColor="#0a1220" />}
+      <SectionDivider topColor={isLight ? '#f5e8ce' : '#0d1526'} bottomColor={isLight ? '#ecddc0' : '#0a1220'} />
 
       {/* ── Education block: How It Works + Wallet + Works With + The Problem ── */}
-      <div style={{ backgroundColor: isLight ? undefined : '#0a1220' }}>
+      <div style={{ backgroundColor: isLight ? '#ecddc0' : '#0a1220' }}>
 
       <FadeInSection>
         {/* How It Works */}
@@ -1243,7 +1243,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
           {/* Frosted unlock overlay */}
           <div className="absolute bottom-0 left-0 right-0 h-56 flex flex-col items-center justify-end pb-8 gap-2.5"
             style={{ background: isLight
-              ? 'linear-gradient(to bottom, transparent 0%, rgba(232,226,212,0.85) 35%, rgba(232,226,212,0.97) 60%, #e8e2d4 100%)'
+              ? 'linear-gradient(to bottom, transparent 0%, rgba(236,221,192,0.85) 35%, rgba(236,221,192,0.97) 60%, #ecddc0 100%)'
               : 'linear-gradient(to bottom, transparent 0%, rgba(13,21,38,0.85) 35%, rgba(13,21,38,0.97) 60%, #0d1526 100%)' }}
           >
             <p className="text-white/35 text-xs tracking-wide">Your real balances. Your actual credits.</p>
@@ -1391,10 +1391,10 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
       </div>{/* end education block */}
 
       {/* ── Wave: Education → Reviews ── */}
-      {!isLight && <SectionDivider topColor="#0a1220" bottomColor="#0d1526" />}
+      <SectionDivider topColor={isLight ? '#ecddc0' : '#0a1220'} bottomColor={isLight ? '#f5e8ce' : '#0d1526'} />
 
       {/* ── Reviews + CTA + Footer ── */}
-      <div style={{ backgroundColor: isLight ? undefined : '#0d1526' }}>
+      <div style={{ backgroundColor: isLight ? '#f5e8ce' : '#0d1526' }}>
       <FadeInSection>
         {/* Reviews carousel */}
         <div id="reviews" className="pb-16 w-full">
@@ -1436,7 +1436,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
       </div>{/* end reviews + CTA */}
 
       {/* ── Footer ── */}
-      <div style={{ backgroundColor: isLight ? undefined : '#080d1a' }}>
+      <div style={{ backgroundColor: isLight ? '#ecddc0' : '#080d1a' }}>
       <FadeInSection>
         <footer className="border-t border-white/5 px-6 py-10 flex flex-col items-center gap-2 text-center">
           <div className="flex items-center gap-2 mb-1">
@@ -1886,9 +1886,9 @@ async function downloadTripPDF(intelligence) {
   doc.save(filename);
 }
 
-function FlightCard({ flight }) {
+function FlightCard({ flight, isLight = false }) {
   const [imgError, setImgError] = useState(false);
-  const imgUrl = `https://source.unsplash.com/600x200/?${encodeURIComponent(flight.destinationCity)},${encodeURIComponent(flight.destinationCountry)},cityscape`;
+  const imgUrl = `https://picsum.photos/seed/${encodeURIComponent(flight.destinationCity)}/600/200`;
 
   const badgeColors = {
     'Best Value': '#c9a84c',
@@ -1915,9 +1915,9 @@ function FlightCard({ flight }) {
             onError={() => setImgError(true)}
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-[#111d35] to-[#0d1526]" />
+          <div className="w-full h-full" style={{ background: isLight ? 'linear-gradient(135deg, #ecddc0, #d4c090)' : 'linear-gradient(135deg, #111d35, #0d1526)' }} />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0d1526]/75 to-transparent pointer-events-none" />
+        <div className="absolute inset-0 pointer-events-none" style={{ background: isLight ? 'linear-gradient(to top, rgba(236,221,192,0.85) 0%, transparent 100%)' : 'linear-gradient(to top, rgba(13,21,38,0.75) 0%, transparent 100%)' }} />
         {/* Badge */}
         <div
           className="absolute top-3 right-3 text-[10px] font-semibold px-2.5 py-1 rounded-full"
@@ -1980,7 +1980,7 @@ function FlightCard({ flight }) {
   );
 }
 
-function FlightsTab({ flights, loading }) {
+function FlightsTab({ flights, loading, isLight = false }) {
   if (loading) {
     return (
       <div className="space-y-4">
@@ -2016,7 +2016,7 @@ function FlightsTab({ flights, loading }) {
         Typical award availability for this route. Search directly with the airline to confirm.
       </p>
       {flights.map((flight, i) => (
-        <FlightCard key={i} flight={flight} />
+        <FlightCard key={i} flight={flight} isLight={isLight} />
       ))}
     </div>
   );
@@ -2230,7 +2230,7 @@ function StrategyTab({ strategy }) {
   );
 }
 
-function TripIntelligencePanel({ intelligence, loading, activeTab, onTabChange, newIndicators, onClearIndicator, onToggleChecklistItem, flights, flightsLoading }) {
+function TripIntelligencePanel({ intelligence, loading, activeTab, onTabChange, newIndicators, onClearIndicator, onToggleChecklistItem, flights, flightsLoading, isLight = false }) {
   const tabs = [
     { id: 'overview', label: 'Overview' },
     { id: 'checklist', label: 'Checklist' },
@@ -2296,7 +2296,7 @@ function TripIntelligencePanel({ intelligence, loading, activeTab, onTabChange, 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
         {activeTab === 'flights' ? (
-          <FlightsTab flights={flights} loading={flightsLoading} />
+          <FlightsTab flights={flights} loading={flightsLoading} isLight={isLight} />
         ) : isEmpty && !loading ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-8 min-h-[260px] gap-4">
             <div className="w-12 h-12 rounded-full bg-[#c9a84c]/8 border border-[#c9a84c]/15 flex items-center justify-center">
@@ -2904,7 +2904,7 @@ Rules: GREAT = above 1.5¢/pt, GOOD = 0.8–1.5¢/pt, BAD = below 0.8¢/pt.`,
 
 // ── Chat Interface ──────────────────────────────────────────────────────────
 
-function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips, onSaveTrip, onDeleteTrip, travelers = [] }) {
+function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips, onSaveTrip, onDeleteTrip, travelers = [], isLight = false, onToggleTheme }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentTripId, setCurrentTripId] = useState(null);
   const currentTripIdRef = useRef(null);
@@ -3177,10 +3177,11 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
     onToggleChecklistItem: toggleIntelligenceChecklistItem,
     flights,
     flightsLoading,
+    isLight,
   };
 
   return (
-    <div className="h-screen bg-[#0a0f1e] font-['DM_Sans',sans-serif] flex flex-col relative overflow-hidden">
+    <div className={`h-screen font-['DM_Sans',sans-serif] flex flex-col relative overflow-hidden${isLight ? ' lm' : ''}`} style={{ backgroundColor: isLight ? '#f5e8ce' : '#0a0f1e' }}>
 
       {/* Trip Brief Modal — planner tab only */}
       {showTripBrief && chatTab === 'planner' && (
@@ -3286,6 +3287,7 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
           <button onClick={onOpenDashboard} className="text-white/40 hover:text-white transition-colors" aria-label="Profile">
             <UserIcon className="w-5 h-5" />
           </button>
+          {onToggleTheme && <ThemeToggle isLight={isLight} onToggle={onToggleTheme} />}
         </div>
       </div>
 
@@ -3378,7 +3380,7 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
         <div className="hidden md:block w-px bg-white/[0.06] flex-shrink-0" />
 
         {/* Right: Trip Intelligence Panel (desktop only) */}
-        <div className="hidden md:flex flex-col overflow-hidden md:w-[40%] bg-[#0a0f1e]">
+        <div className="hidden md:flex flex-col overflow-hidden md:w-[40%]" style={{ backgroundColor: isLight ? '#f5e8ce' : '#0a0f1e' }}>
           <TripIntelligencePanel {...intelligencePanelProps} />
         </div>
       </div>
@@ -3388,7 +3390,7 @@ function ChatInterface({ onBack, onOpenDashboard, onEditProfile, profile, trips,
       {chatTab === 'planner' && mobileIntelOpen && (
         <div className="md:hidden fixed inset-0 z-40 flex flex-col justify-end">
           <div className="absolute inset-0 bg-black/50 glass-panel" onClick={() => setMobileIntelOpen(false)} />
-          <div className="relative bg-[#0a0f1e] border-t border-white/8 rounded-t-2xl flex flex-col" style={{ maxHeight: '80vh' }}>
+          <div className="relative border-t border-white/8 rounded-t-2xl flex flex-col" style={{ maxHeight: '80vh', backgroundColor: isLight ? '#f5e8ce' : '#0a0f1e' }}>
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/8 flex-shrink-0">
               <span className="text-white text-sm font-medium">Trip Intelligence</span>
               <button onClick={() => setMobileIntelOpen(false)} className="text-white/40 hover:text-white transition-colors">
@@ -4357,7 +4359,7 @@ function SettingsRow({ label, value, editing, onEdit, onCancel, children }) {
   );
 }
 
-function ProfileDashboard({ profile, usedCredits, onToggleCredit, onSave, onBack, travelers = [], onSaveTravelers }) {
+function ProfileDashboard({ profile, usedCredits, onToggleCredit, onSave, onBack, travelers = [], onSaveTravelers, isLight = false, onToggleTheme }) {
   const [editingField, setEditingField] = useState(null);
   const [airportQuery, setAirportQuery]   = useState('');
   const [draftAirport, setDraftAirport]   = useState(null);
@@ -4405,14 +4407,14 @@ function ProfileDashboard({ profile, usedCredits, onToggleCredit, onSave, onBack
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0f1e] font-['DM_Sans',sans-serif]">
+    <div className={`min-h-screen font-['DM_Sans',sans-serif]${isLight ? ' lm' : ''}`} style={{ backgroundColor: isLight ? '#f5e8ce' : '#0a0f1e' }}>
       {/* Nav */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
         <button onClick={onBack} className="text-white/40 hover:text-white transition-colors">
           <ArrowLeftIcon className="w-5 h-5" />
         </button>
         <span className="text-white/25 text-[10px] uppercase tracking-widest">Dashboard</span>
-        <div className="w-5" />
+        {onToggleTheme ? <ThemeToggle isLight={isLight} onToggle={onToggleTheme} /> : <div className="w-5" />}
       </div>
 
       <div className="max-w-2xl mx-auto px-5 pb-24">
@@ -4866,7 +4868,7 @@ function PricingPage({ isLight, onToggleTheme }) {
   ];
 
   return (
-    <div className={`min-h-screen font-['DM_Sans',sans-serif] ${isLight ? 'bg-[#f2ede3] lm' : 'bg-[#0a0f1e]'}`}>
+    <div className={`min-h-screen font-['DM_Sans',sans-serif] ${isLight ? 'bg-[#f5e8ce] lm' : 'bg-[#0a0f1e]'}`}>
       <div className="noise-overlay" aria-hidden="true" />
 
       {/* Nav */}
@@ -4875,7 +4877,7 @@ function PricingPage({ isLight, onToggleTheme }) {
           scrolled ? (isLight ? 'shadow-[0_4px_24px_rgba(0,0,0,0.08)]' : 'shadow-[0_4px_32px_rgba(0,0,0,0.45)]') : ''
         }`}
         style={{
-          backgroundColor: isLight ? 'rgba(242,237,227,0.93)' : 'rgba(10,15,30,0.88)',
+          backgroundColor: isLight ? 'rgba(245,232,206,0.93)' : 'rgba(10,15,30,0.88)',
           borderBottom: `1px solid ${isLight ? 'rgba(13,21,38,0.08)' : 'rgba(255,255,255,0.04)'}`,
           transition: 'background-color 0.3s ease, box-shadow 0.3s ease',
         }}
@@ -5135,8 +5137,8 @@ export default function App() {
         path="/*"
         element={
           <>
-            {/* Noise texture overlay — sits above everything, pointer-events-none */}
-            <div className="noise-overlay" aria-hidden="true" />
+            {/* Noise texture overlay — dark mode only */}
+            {!isLight && <div className="noise-overlay" aria-hidden="true" />}
             {screen === 'landing' && (
               <LandingPage
                 onGetStarted={() => setScreen('profile')}
@@ -5166,6 +5168,8 @@ export default function App() {
                 onSaveTrip={saveTrip}
                 onDeleteTrip={deleteTrip}
                 travelers={travelers}
+                isLight={isLight}
+                onToggleTheme={toggleTheme}
               />
             )}
             {screen === 'dashboard' && (
@@ -5177,6 +5181,8 @@ export default function App() {
                 onBack={() => setScreen(prevScreenRef.current)}
                 travelers={travelers}
                 onSaveTravelers={saveTravelers}
+                isLight={isLight}
+                onToggleTheme={toggleTheme}
               />
             )}
           </>
