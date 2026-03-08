@@ -1652,7 +1652,7 @@ async function extractTripContext(client, messages) {
         ...history,
         {
           role: 'user',
-          content: 'Extract trip details from this conversation. Return ONLY valid JSON, no other text: { "originCode": "3-letter IATA airport code", "destinationCode": "3-letter IATA airport code", "destinationCity": "city name", "checkIn": "YYYY-MM-DD", "checkOut": "YYYY-MM-DD", "travelers": 1 }. Use null for any field not mentioned. If only a month is mentioned for dates use the 1st. Assume year 2025 if not specified.',
+          content: `Today is ${new Date().toISOString().slice(0, 10)}. Extract trip details from this conversation. Return ONLY valid JSON, no other text: { "originCode": "3-letter IATA airport code", "destinationCode": "3-letter IATA airport code", "destinationCity": "city name for hotel search", "checkIn": "YYYY-MM-DD", "checkOut": "YYYY-MM-DD", "travelers": 1 }. For missing dates: if only a month is mentioned use the 1st of that month; if no date at all, use a date 3 weeks from today for checkIn and 1 week after that for checkOut. For missing airport codes make your best guess from context. Never return null for originCode, destinationCode, destinationCity, checkIn, or checkOut — always provide a best guess.`,
         },
       ],
     });
@@ -1671,27 +1671,33 @@ async function fetchSerpFlights(ctx) {
       departure_id: ctx.originCode,
       arrival_id: ctx.destinationCode,
       outbound_date: ctx.checkIn,
-      travel_class: '2',
       adults: String(ctx.travelers || 1),
       currency: 'USD',
       hl: 'en',
     });
     const res = await fetch(`/api/serp?${params}`);
     const data = await res.json();
-    return (data.best_flights || data.other_flights || []).slice(0, 3);
+    const results = [...(data.best_flights || []), ...(data.other_flights || [])];
+    return results.slice(0, 3);
   } catch {
     return null;
   }
 }
 
 async function fetchSerpHotels(ctx) {
-  if (!ctx?.destinationCity || !ctx?.checkIn || !ctx?.checkOut) return null;
+  if (!ctx?.destinationCity || !ctx?.checkIn) return null;
   try {
+    // Default checkOut to checkIn + 3 nights if not provided
+    const checkOut = ctx.checkOut || (() => {
+      const d = new Date(ctx.checkIn);
+      d.setDate(d.getDate() + 3);
+      return d.toISOString().slice(0, 10);
+    })();
     const params = new URLSearchParams({
       engine: 'google_hotels',
       q: `${ctx.destinationCity} hotels`,
       check_in_date: ctx.checkIn,
-      check_out_date: ctx.checkOut,
+      check_out_date: checkOut,
       adults: String(ctx.travelers || 1),
       currency: 'USD',
     });
