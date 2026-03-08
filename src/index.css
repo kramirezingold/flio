@@ -216,6 +216,16 @@ body {
   animation: slideInFromRight 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* ── Hero gradient pulse ───────────────────────────────────────────────────── */
+@keyframes heroGradientPulse {
+  0%, 100% { opacity: 0.55; transform: scale(1);    }
+  50%       { opacity: 1;    transform: scale(1.14); }
+}
+.hero-gradient-animated {
+  animation: heroGradientPulse 8s ease-in-out infinite;
+  transform-origin: center center;
+}
+
 /* ── Reviews carousel ──────────────────────────────────────────────────────── */
 @keyframes carouselScroll {
   from { transform: translateX(0); }

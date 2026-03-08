@@ -754,6 +754,49 @@ function ReviewsCarousel() {
   );
 }
 
+// ── Landing Page helpers ────────────────────────────────────────────────────
+
+function StarField() {
+  const stars = useMemo(() => {
+    return Array.from({ length: 88 }, (_, i) => ({
+      id: i,
+      x: ((Math.sin(i * 127.1 + 3) + 1) / 2) * 100,
+      y: ((Math.cos(i * 311.7 + 1) + 1) / 2) * 100,
+      size: i % 4 === 0 ? 2 : 1,
+      opacity: 0.3 + (i % 3) * 0.1,
+    }));
+  }, []);
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden">
+      {stars.map((s) => (
+        <div
+          key={s.id}
+          style={{
+            position: 'absolute',
+            left: `${s.x}%`,
+            top: `${s.y}%`,
+            width: `${s.size}px`,
+            height: `${s.size}px`,
+            borderRadius: '50%',
+            backgroundColor: '#ffffff',
+            opacity: s.opacity,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function SectionDivider({ topColor, bottomColor }) {
+  return (
+    <div style={{ backgroundColor: bottomColor, lineHeight: 0, overflow: 'hidden' }}>
+      <svg viewBox="0 0 1440 50" preserveAspectRatio="none" style={{ width: '100%', height: '50px', display: 'block' }}>
+        <path d="M0,0 C480,50 960,0 1440,35 L1440,0 L0,0 Z" fill={topColor} />
+      </svg>
+    </div>
+  );
+}
+
 // ── Landing Page ───────────────────────────────────────────────────────────
 
 function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, onEditProfile, isLight, onToggleTheme }) {
@@ -804,8 +847,9 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
 
   return (
     <div
-      className={`font-['DM_Sans',sans-serif] flex flex-col transition-colors duration-300 ${isLight ? 'bg-[#f2ede3] lm' : 'bg-[#0a0f1e]'}`}
+      className={`font-['DM_Sans',sans-serif] flex flex-col transition-colors duration-300 ${isLight ? 'bg-[#f2ede3] lm' : ''}`}
     >
+      {!isLight && <div className="noise-overlay" aria-hidden="true" />}
       {/* ── Sticky nav ── */}
       <nav
         className={`sticky top-0 z-50 flex items-center justify-between px-6 h-16 backdrop-blur-md transition-shadow duration-300 ${
@@ -902,7 +946,18 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
       )}
 
       {/* Hero */}
-      <div id="home" className="relative min-h-screen flex flex-col items-center justify-center px-6 text-center overflow-hidden">
+      <div id="home" className="relative min-h-screen flex flex-col items-center justify-center px-6 text-center overflow-hidden" style={{ backgroundColor: isLight ? undefined : '#080d1a' }}>
+
+        {/* Star field — dark mode only */}
+        {!isLight && <StarField />}
+
+        {/* Animated deep navy radial pulse */}
+        {!isLight && (
+          <div
+            className="absolute inset-0 pointer-events-none hero-gradient-animated"
+            style={{ background: 'radial-gradient(ellipse 75% 55% at 50% 50%, rgba(12,30,70,0.7) 0%, transparent 70%)' }}
+          />
+        )}
 
         {/* Background: central gold radial glow */}
         <div
@@ -928,6 +983,21 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
           className="absolute inset-0 pointer-events-none"
           style={{ background: 'radial-gradient(circle 600px at 90% 85%, rgba(201,168,76,0.04) 0%, transparent 70%)' }}
         />
+
+        {/* Gold glow behind headline */}
+        {!isLight && (
+          <div
+            className="absolute pointer-events-none"
+            style={{
+              width: '700px',
+              height: '280px',
+              background: 'radial-gradient(ellipse at center, rgba(201,168,76,0.06) 0%, transparent 68%)',
+              top: '42%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+            }}
+          />
+        )}
 
         {/* Badge */}
         <div className="relative mb-8 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5">
@@ -997,10 +1067,10 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
           ))}
         </div>
 
-        {/* Bottom fade — blends hero glow into the next section */}
+        {/* Bottom fade — blends hero into wave divider */}
         <div
           className="absolute bottom-0 left-0 right-0 h-40 pointer-events-none"
-          style={{ background: `linear-gradient(to bottom, transparent 0%, ${isLight ? '#f2ede3' : '#0a0f1e'} 100%)` }}
+          style={{ background: `linear-gradient(to bottom, transparent 0%, ${isLight ? '#f2ede3' : '#080d1a'} 100%)` }}
         />
 
         {/* Scroll indicator */}
@@ -1010,12 +1080,24 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
         </div>
       </div>
 
-      <FadeInSection>
-        {/* Demo chat */}
-        <div id="demo" className="pt-20 pb-16">
-          <DemoChat onGetStarted={onGetStarted} />
-        </div>
-      </FadeInSection>
+      {/* ── Wave: Hero → Demo ── */}
+      {!isLight && <SectionDivider topColor="#080d1a" bottomColor="#0d1526" />}
+
+      {/* ── Demo ── */}
+      <div style={{ backgroundColor: isLight ? undefined : '#0d1526' }}>
+        <FadeInSection>
+          {/* Demo chat */}
+          <div id="demo" className="pt-20 pb-16">
+            <DemoChat onGetStarted={onGetStarted} />
+          </div>
+        </FadeInSection>
+      </div>
+
+      {/* ── Wave: Demo → Education block ── */}
+      {!isLight && <SectionDivider topColor="#0d1526" bottomColor="#0a1220" />}
+
+      {/* ── Education block: How It Works + Wallet + Works With + The Problem ── */}
+      <div style={{ backgroundColor: isLight ? undefined : '#0a1220' }}>
 
       <FadeInSection>
         {/* How It Works */}
@@ -1064,6 +1146,19 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
           className="relative rounded-2xl border border-[#c9a84c]/12 bg-[#0d1526] overflow-hidden"
           style={{ boxShadow: '0 0 0 1px rgba(201,168,76,0.08), 0 0 80px rgba(201,168,76,0.09), 0 0 160px rgba(201,168,76,0.05)' }}
         >
+          {/* Gold glow behind wallet value */}
+          {!isLight && (
+            <div
+              className="absolute pointer-events-none"
+              style={{
+                width: '320px',
+                height: '120px',
+                background: 'radial-gradient(ellipse at center, rgba(201,168,76,0.06) 0%, transparent 70%)',
+                top: 0,
+                right: '-40px',
+              }}
+            />
+          )}
           {/* Card header */}
           <div className="flex items-center justify-between px-6 py-5 border-b border-white/5">
             <div className="flex items-center gap-2.5">
@@ -1293,6 +1388,13 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
       </div>
       </FadeInSection>
 
+      </div>{/* end education block */}
+
+      {/* ── Wave: Education → Reviews ── */}
+      {!isLight && <SectionDivider topColor="#0a1220" bottomColor="#0d1526" />}
+
+      {/* ── Reviews ── */}
+      <div style={{ backgroundColor: isLight ? undefined : '#0d1526' }}>
       <FadeInSection>
         {/* Reviews carousel */}
         <div id="reviews" className="pb-32 w-full">
@@ -1305,7 +1407,13 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
           <ReviewsCarousel />
         </div>
       </FadeInSection>
+      </div>{/* end reviews */}
 
+      {/* ── Wave: Reviews → CTA ── */}
+      {!isLight && <SectionDivider topColor="#0d1526" bottomColor="#080d1a" />}
+
+      {/* ── CTA + Footer ── */}
+      <div style={{ backgroundColor: isLight ? undefined : '#080d1a' }}>
       <FadeInSection>
         {/* CTA Banner */}
         <div id="pricing" className="relative w-full px-6 py-32 flex flex-col items-center text-center overflow-hidden">
@@ -1344,6 +1452,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
           <p className="text-white/40 text-xs">Built for travelers who want more from every trip.</p>
         </footer>
       </FadeInSection>
+      </div>{/* end CTA + footer */}
 
     </div>
   );
