@@ -1393,11 +1393,11 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
       {/* ── Wave: Education → Reviews ── */}
       {!isLight && <SectionDivider topColor="#0a1220" bottomColor="#0d1526" />}
 
-      {/* ── Reviews ── */}
+      {/* ── Reviews + CTA + Footer ── */}
       <div style={{ backgroundColor: isLight ? undefined : '#0d1526' }}>
       <FadeInSection>
         {/* Reviews carousel */}
-        <div id="reviews" className="pb-32 w-full">
+        <div id="reviews" className="pb-16 w-full">
           <div className="text-center mb-12 px-6">
             <p className="text-[10px] text-[#c9a84c] uppercase tracking-widest mb-3">What Travelers Say</p>
             <h2 className="text-3xl md:text-4xl text-white font-['Playfair_Display',serif] font-normal">
@@ -1407,16 +1407,9 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
           <ReviewsCarousel />
         </div>
       </FadeInSection>
-      </div>{/* end reviews */}
-
-      {/* ── Wave: Reviews → CTA ── */}
-      {!isLight && <SectionDivider topColor="#0d1526" bottomColor="#080d1a" />}
-
-      {/* ── CTA + Footer ── */}
-      <div style={{ backgroundColor: isLight ? undefined : '#080d1a' }}>
       <FadeInSection>
         {/* CTA Banner */}
-        <div id="pricing" className="relative w-full px-6 py-32 flex flex-col items-center text-center overflow-hidden">
+        <div id="pricing" className="relative w-full px-6 py-16 flex flex-col items-center text-center overflow-hidden">
         {/* Radial gold glow */}
         <div
           className="absolute inset-0 pointer-events-none"
@@ -1440,9 +1433,11 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
         </p>
         </div>
       </FadeInSection>
+      </div>{/* end reviews + CTA */}
 
+      {/* ── Footer ── */}
+      <div style={{ backgroundColor: isLight ? undefined : '#080d1a' }}>
       <FadeInSection>
-        {/* Page footer */}
         <footer className="border-t border-white/5 px-6 py-10 flex flex-col items-center gap-2 text-center">
           <div className="flex items-center gap-2 mb-1">
             <PlaneIcon className="w-4 h-4 text-[#c9a84c]" />
@@ -1452,7 +1447,7 @@ function LandingPage({ onGetStarted, onOpenChat, onOpenDashboard, hasProfile, on
           <p className="text-white/40 text-xs">Built for travelers who want more from every trip.</p>
         </footer>
       </FadeInSection>
-      </div>{/* end CTA + footer */}
+      </div>{/* end footer */}
 
     </div>
   );
